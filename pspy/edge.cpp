@@ -140,6 +140,9 @@ void Edge::init_circle() {
     parameters.push_back(circle_sf.basis_set.axis.coord[0]);
     parameters.push_back(circle_sf.basis_set.axis.coord[1]);
     parameters.push_back(circle_sf.basis_set.axis.coord[2]);
+    parameters.push_back(circle_sf.basis_set.ref_direction.coord[0]);
+    parameters.push_back(circle_sf.basis_set.ref_direction.coord[1]);
+    parameters.push_back(circle_sf.basis_set.ref_direction.coord[2]);
     parameters.push_back(circle_sf.radius);
 }
 
@@ -155,6 +158,9 @@ void Edge::init_ellipse() {
     parameters.push_back(ellipse_sf.basis_set.axis.coord[0]);
     parameters.push_back(ellipse_sf.basis_set.axis.coord[1]);
     parameters.push_back(ellipse_sf.basis_set.axis.coord[2]);
+    parameters.push_back(ellipse_sf.basis_set.ref_direction.coord[0]);
+    parameters.push_back(ellipse_sf.basis_set.ref_direction.coord[1]);
+    parameters.push_back(ellipse_sf.basis_set.ref_direction.coord[2]);
     parameters.push_back(ellipse_sf.R1);
     parameters.push_back(ellipse_sf.R2);
 }

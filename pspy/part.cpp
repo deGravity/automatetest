@@ -349,6 +349,7 @@ PartEdge::PartEdge(Edge& e, int i)
 	index = i;
 	function = e.function;
 	parameters = e.parameters;
+	orientation = !e._is_reversed;
 	t_range.resize(2);
 	t_range(0) = e.t_start;
 	t_range(1) = e.t_end;

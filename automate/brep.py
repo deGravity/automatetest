@@ -155,7 +155,7 @@ class FaceFeatures:
         self.center_of_gravity = True
         self.moment_of_inertia = True
 
-FACE_PARAM_SIZE = 8 # The maximum parameter size for a face is 8
+FACE_PARAM_SIZE = 11 # The maximum parameter size for a face is 8
                     # so we will pad all parameter arrays to size 8
 def featurize_face(f, options):
     if not isinstance(f, dict):
@@ -231,6 +231,7 @@ class EdgeFeatures:
         self.parametric_function = True
         self.parameter_values = True
         self.exclude_origin = False
+        self.orientation = True
 
         self.t_range = True # Parametric Range
 
@@ -248,7 +249,7 @@ class EdgeFeatures:
         self.moment_of_inertia = True
         
 
-EDGE_PARAM_SIZE = 8
+EDGE_PARAM_SIZE = 11
 def featurize_edge(e, options):
     if not isinstance(e, dict):
         e = DotMap(torchify(e))
@@ -263,6 +264,8 @@ def featurize_edge(e, options):
             if options.edge.exclude_origin:
                 params = params[3:]
             feature_parts.append(params)
+    if options.edge.orientation:
+        feature_parts.append(to_flat(e.orientation))
     
     if options.edge.t_range:
         feature_parts.append(to_flat(e.t_range))

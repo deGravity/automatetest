@@ -177,6 +177,9 @@ void Face::init_plane() {
     parameters.push_back(plane_sf.basis_set.axis.coord[0]);
     parameters.push_back(plane_sf.basis_set.axis.coord[1]);
     parameters.push_back(plane_sf.basis_set.axis.coord[2]);
+    parameters.push_back(plane_sf.basis_set.ref_direction.coord[0]);
+    parameters.push_back(plane_sf.basis_set.ref_direction.coord[1]);
+    parameters.push_back(plane_sf.basis_set.ref_direction.coord[2]);
 }
 
 void Face::init_cyl() {
@@ -191,6 +194,9 @@ void Face::init_cyl() {
     parameters.push_back(cylinder.basis_set.axis.coord[0]);
     parameters.push_back(cylinder.basis_set.axis.coord[1]);
     parameters.push_back(cylinder.basis_set.axis.coord[2]);
+    parameters.push_back(cylinder.basis_set.ref_direction.coord[0]);
+    parameters.push_back(cylinder.basis_set.ref_direction.coord[1]);
+    parameters.push_back(cylinder.basis_set.ref_direction.coord[2]);
     parameters.push_back(cylinder.radius);
 }
 
@@ -206,8 +212,11 @@ void Face::init_cone() {
     parameters.push_back(cone.basis_set.axis.coord[0]);     // 3 - axis_x
     parameters.push_back(cone.basis_set.axis.coord[1]);     // 4 - axis_y
     parameters.push_back(cone.basis_set.axis.coord[2]);     // 5 - axis_z
-    parameters.push_back(cone.radius);                      // 6 - radius
-    parameters.push_back(cone.semi_angle);                  // 7 - semi-angle
+    parameters.push_back(cone.basis_set.ref_direction.coord[0]); // 6
+    parameters.push_back(cone.basis_set.ref_direction.coord[1]); // 7
+    parameters.push_back(cone.basis_set.ref_direction.coord[2]); // 8
+    parameters.push_back(cone.radius);                      // 9 - radius
+    parameters.push_back(cone.semi_angle);                  // 10 - semi-angle
 }
 
 void Face::init_sphere() {
@@ -222,6 +231,9 @@ void Face::init_sphere() {
     parameters.push_back(sphere.basis_set.axis.coord[0]);
     parameters.push_back(sphere.basis_set.axis.coord[1]);
     parameters.push_back(sphere.basis_set.axis.coord[2]);
+    parameters.push_back(sphere.basis_set.ref_direction.coord[0]);
+    parameters.push_back(sphere.basis_set.ref_direction.coord[1]);
+    parameters.push_back(sphere.basis_set.ref_direction.coord[2]);
     parameters.push_back(sphere.radius);
 }
 
@@ -237,6 +249,9 @@ void Face::init_torus() {
     parameters.push_back(torus.basis_set.axis.coord[0]);
     parameters.push_back(torus.basis_set.axis.coord[1]);
     parameters.push_back(torus.basis_set.axis.coord[2]);
+    parameters.push_back(torus.basis_set.ref_direction.coord[0]);
+    parameters.push_back(torus.basis_set.ref_direction.coord[1]);
+    parameters.push_back(torus.basis_set.ref_direction.coord[2]);
     parameters.push_back(torus.major_radius);
     parameters.push_back(torus.minor_radius);
 }
@@ -306,8 +321,8 @@ void Face::add_inferences_plane(std::vector<Inference>& inferences)
 void Face::add_inferences_cone(std::vector<Inference>& inferences)
 {
     // Tip of cone, oriented along cone axis
-    double radius = parameters[6];
-    double semi_angle = parameters[7];
+    double radius = parameters[9];
+    double semi_angle = parameters[10];
     Inference tip_inf;
     tip_inf.inference_type = InferenceType::POINT;
 

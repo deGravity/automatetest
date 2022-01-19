@@ -86,6 +86,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 		.def_readonly("index", &PartEdge::index)
 		.def_readonly("function", &PartEdge::function)
 		.def_readonly("parameters", &PartEdge::parameters)
+		.def_readonly("orientation", &PartEdge::orientation)
 		.def_readonly("t_range", &PartEdge::t_range)
 		.def_readonly("start", &PartEdge::start)
 		.def_readonly("end", &PartEdge::end)

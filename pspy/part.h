@@ -56,7 +56,7 @@ struct PartFace {
 	int index;
 	SurfaceFunction function;
 	std::vector<double> parameters;
-	bool orientation;
+	bool orientation; // True is face normal matches surface normal
 	Eigen::MatrixXd bounding_box;
 	Eigen::MatrixXd na_bounding_box;
 	double surface_area;
@@ -91,6 +91,7 @@ struct PartEdge {
 	int index;
 	CurveFunction function;
 	std::vector<double> parameters;
+	bool orientation; // true is edge direction matches curve direction
 	Eigen::VectorXd t_range;
 	Eigen::Vector3d start;
 	Eigen::Vector3d end;
