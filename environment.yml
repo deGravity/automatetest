@@ -9,7 +9,7 @@ dependencies:
   - python
   - cudatoolkit=10.2
   - pytorch=1.10
-  - pyg
+  - pyg=2.0.3
   - numpy
   - pandas
   - pytorch-lightning

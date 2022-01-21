@@ -1,6 +1,7 @@
 from .conversions import jsonify, torchify
 from .brep import PartFeatures, part_to_graph, HetData, PartDataset
 from .sbgcn import SBGCN, LinearBlock
+from .uvgrid import UVPartDataModule, UVPartDataset, SimplePartDataset
 
 __all__ = [
     'jsonify', 
@@ -10,5 +11,8 @@ __all__ = [
     'HetData', 
     'SBGCN',
     'LinearBlock',
-    'PartDataset'
+    'PartDataset',
+    'UVPartDataModule',
+    'UVPartDataset',
+    'SimplePartDataset'
     ]

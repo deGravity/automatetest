@@ -2,8 +2,78 @@ import torch
 import torch_geometric as tg
 import pytorch_lightning as pl
 from torch_scatter import scatter_mean
-from . import PartDataset, SBGCN, LinearBlock
+from . import PartDataset, SBGCN, LinearBlock, part_to_graph
+from pspy import PartOptions, Part
+import os
 
+class SimplePartDataset(torch.utils.data.Dataset):
+    def __init__(self, path, n_samples = 10, normalize = True, mode='train'):
+        super().__init__()
+        self.path = path
+        self.n_samples = n_samples
+        self.normalize = normalize
+        self.mode = mode
+        self.files = [os.path.join(path,x) for x in os.listdir(path) if x.endswith('.pt')]
+        cutoff = int(len(self.files) * 0.95)
+        train_files = self.files[:cutoff]
+        val_files = self.files[cutoff:]
+        self.files = {
+            'train':train_files,
+            'validate':val_files
+        }
+    
+    def __len__(self):
+        return len(self.files[self.mode])
+    def __getitem__(self, idx):
+        data = torch.load(self.files[self.mode][idx])
+
+        # Normalization
+        if self.normalize:
+            face_points = data.face_samples[:,:3,:,:].permute((0,2,3,1)).reshape((-1,3))
+            edge_points = data.edge_samples[:,:3,:].permute(0,2,1).reshape((-1,3))
+            points = torch.cat([face_points, edge_points],dim=0)
+            min_point = points.min(dim=0).values
+            max_point = points.max(dim=0).values
+            center_point = (min_point + max_point) / 2
+            scale = ((max_point - min_point) / 2).max()
+
+        face_types = data.faces[:,:5]#[:,:13]
+        face_oris = data.faces[:,-1].reshape((-1,1))
+        face_params = data.faces[:,13:-1]
+        if self.normalize:
+            face_params[:,:3] = (face_params[:,:3] - center_point) / scale
+            face_params[:,9] = face_params[:,9] / scale
+            toruses = (face_types.argmax(dim=1) == 4)
+            face_params[toruses,10] = face_params[toruses,10] / scale # only torus scales last param
+        data.faces = torch.cat([face_types, face_params, face_oris],dim=1)
+
+        edge_types =  data.edges[:,:3]#[:,:11]
+        edge_params = data.edges[:,11:-1]
+        if self.normalize:
+            edge_params[:,:3] = (edge_params[:,:3] - center_point) / scale
+            edge_params[:,9:] = (edge_params[:,9:] / scale)
+        edge_oris = data.edges[:,-1].reshape((-1,1))
+        data.edges = torch.cat([edge_types, edge_params, edge_oris],dim=1)
+
+        face_xyz = data.face_samples[:,:3,:,:].permute(0,2,3,1)
+        if self.normalize:
+            face_xyz = (face_xyz - center_point) / scale
+        face_mask = data.face_samples[:,-1:,:,:].permute(0,2,3,1)
+        data.face_samples = torch.cat([face_xyz, face_mask],dim=3)
+
+        edge_xyz = data.edge_samples[:,:3,:].permute(0,2,1)
+        if self.normalize:
+            edge_xyz = (edge_xyz - center_point) / scale
+        data.edge_samples = edge_xyz
+
+
+        #d_samps = data.face_samples.shape[-1]
+        #stride = d_samps // self.n_samples
+
+        #data.face_samples = data.face_samples.permute((0,2,3,1))[:,::stride,::stride,:]
+        #data.edge_samples = data.edge_samples.permute((0,2,1))[:,::stride,:]
+
+        return data
 
 class UVPartDataset(PartDataset):
     def __init__(
@@ -12,19 +82,25 @@ class UVPartDataset(PartDataset):
         data_dir = '/fast/benjones/data/',
         mode = 'train',
         cache_dir = None,
-        num_samples = 10
+        num_samples = 10,
+        get_mesh = False,
+        cache_only = False
     ):
         super().__init__(splits_path, data_dir, mode, cache_dir, None, None)
        
+        self.options = None
+
         self.num_samples = num_samples
-        self.options.num_uv_samples = self.num_samples
-        self.options.normalize = False#True
-        self.options.tesselate = False
-        self.options.collect_inferences = False
-        self.options.default_mcfs = False
-        self.options=None # Hack for GPUs since this won't pickle - only works if the cache is already built!
+        self.get_mesh = get_mesh
+        
+        if cache_only:
+            self.options=None # Hack for GPUs since this won't pickle - only works if the cache is already built!
 
         # Turn off all non-parametric function features
+        self.features.face.parametric_function = True
+        self.features.face.parameter_values = True
+        self.features.face.orientation = True
+
         self.features.face.center_of_gravity = False
         self.features.face.bounding_box = False
         self.features.face.center_of_gravity = False
@@ -38,6 +114,7 @@ class UVPartDataset(PartDataset):
         self.features.edge.center_of_gravity = False
         self.features.edge.end = False
         self.features.edge.exclude_origin = False
+        self.features.edge.orientation = True
         self.features.edge.length = False
         self.features.edge.mid_point = False
         self.features.edge.moment_of_inertia = False
@@ -58,9 +135,33 @@ class UVPartDataset(PartDataset):
         self.features.bounding_box = False
         self.features.moment_of_inertia = False
         
-        # Turn off mesh features
-        self.features.mesh = True
-        self.features.mesh_to_topology = True
+        # Turn on/off mesh features
+        self.features.mesh = self.get_mesh
+        self.features.mesh_to_topology = self.get_mesh
+    
+    def __getitem__(self, idx):
+        if isinstance(idx, slice):
+            return [self[i] for i in range(len(self.part_paths))[idx]]
+        if not self.cache_dir is None:
+            cache_file = os.path.join(self.cache_dir, self.mode, f'{idx}.pt')
+            if os.path.exists(cache_file):
+                return torch.load(cache_file)
+        part_path = os.path.join(self.data_dir, self.part_paths[idx])
+        if part_path.endswith('.pt'):
+            part = torch.load(part_path)
+        else:
+            options = PartOptions()
+            options.num_uv_samples = self.num_samples
+            options.normalize = False
+            options.tesselate = self.get_mesh
+            options.collect_inferences = False
+            options.default_mcfs = False
+            part = Part(part_path, options)
+
+        graph = part_to_graph(part, self.features)
+        if not self.cache_dir is None:
+            torch.save(graph, cache_file)
+        return graph
 
 class UVFitter(pl.LightningModule):
     def __init__(
@@ -116,6 +217,8 @@ class UVPartDataModule(pl.LightningDataModule):
         data_dir = '/fast/benjones/data/',
         cache_dir = None,
         num_samples = 10,
+        get_mesh = False,
+        cache_only = False,
         batch_size = 32,
         num_workers = 10,
         shuffle=True
@@ -128,11 +231,13 @@ class UVPartDataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.shuffle = shuffle
+        self.get_mesh = get_mesh
+        self.cache_only = cache_only
 
     def setup(self, **kwargs):
-        self.train = UVPartDataset(self.splits_path, self.data_dir, 'train', self.cache_dir, self.num_samples)
-        self.test = UVPartDataset(self.splits_path, self.data_dir, 'test', self.cache_dir, self.num_samples)
-        self.val = UVPartDataset(self.splits_path, self.data_dir, 'validate', self.cache_dir, self.num_samples)
+        self.train = UVPartDataset(self.splits_path, self.data_dir, 'train', self.cache_dir, self.num_samples, self.get_mesh, self.cache_only)
+        self.test = UVPartDataset(self.splits_path, self.data_dir, 'test', self.cache_dir, self.num_samples, self.get_mesh, self.cache_only)
+        self.val = UVPartDataset(self.splits_path, self.data_dir, 'validate', self.cache_dir, self.num_samples, self.get_mesh, self.cache_only)
 
     def train_dataloader(self):
         return tg.data.DataLoader(self.train, batch_size=self.batch_size, num_workers=self.num_workers,shuffle=self.shuffle)
