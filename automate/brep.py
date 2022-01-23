@@ -401,6 +401,7 @@ def part_to_graph(part, options):
     if options.mesh:
         data.V = torchify(part.mesh.V).float()
         data.F = torchify(part.mesh.F).long().T
+        data.__edge_sets__['F'] = ['V','V','V']
 
         num_faces = data.F.size(1)
 
