@@ -473,3 +473,43 @@ def tb_comp(face_samples, edge_samples, face_pred, edge_pred, gt_color=(.3,.7,.8
     f = torch.cat([f_gt, f_p + v_gt.shape[0]], dim=0)
     c = torch.cat([c_gt, c_p],dim=0)
     return v, f, c
+
+def surface_normals(face_samples):
+    r = face_samples[:,2:,1:-1,:3] - face_samples[:,1:-1,1:-1,:3]
+    l = face_samples[:,:-2,1:-1,:3] - face_samples[:,1:-1,1:-1,:3]
+    d = face_samples[:,1:-1,:-2,:3] - face_samples[:,1:-1,1:-1,:3]
+    u = face_samples[:,1:-1,2:,:3] - face_samples[:,1:-1,1:-1,:3]
+
+    n1 = torch.cross(d,r)
+    n1m = torch.linalg.norm(n1,dim=-1)
+    n1 = n1 / n1m.unsqueeze(-1)
+    n1m[n1m == 0] = 1
+    n2 = torch.cross(r,u)
+    n2m = torch.linalg.norm(n2,dim=-1)
+    n2 = n2 / n2m.unsqueeze(-1)
+    n2m[n2m == 0] = 1
+    n3 = torch.cross(u,l)
+    n3m = torch.linalg.norm(n3,dim=-1)
+    n3m[n3m == 0] = 1
+    n3 = n3 / n3m.unsqueeze(-1)
+    n4 = torch.cross(l,d)
+    n4m = torch.linalg.norm(n4,dim=-1)
+    n4m[n4m == 0] = 1
+    n4 = n4 / n4m.unsqueeze(-1)
+
+    normals = (n1 + n2 + n3 + n4) / 4
+
+    return normals
+
+def surface_metric(face_samples):
+    d_u = torch.linalg.norm(face_samples[:, 1:, :, :3] - face_samples[:,:-1,:,:3],dim=-1)
+    d_v = torch.linalg.norm(face_samples[:,:, 1:, :3] - face_samples[:,:,:-1,:3],dim=-1)
+    return d_u, d_v
+
+def arc_lengths(edge_samples):
+    return torch.linalg.norm(edge_samples[:,1:,:] - edge_samples[:,:-1,:],dim=-1)
+
+def cos_corner_angles(edge_samples):
+    forward = edge_samples[:,2:,:] - edge_samples[:,1:-1,:]
+    backward = edge_samples[:,:-2,:] - edge_samples[:,1:-1,:]
+    return torch.nn.functional.cosine_similarity(forward, backward, dim=-1)
