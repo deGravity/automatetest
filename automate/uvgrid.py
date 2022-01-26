@@ -462,7 +462,7 @@ def tb_mesh(face_samples, edge_samples, color=(1.0, .8, .1), w=0.001, r=0.001, M
     e_v, e_f, e_c = tb_edge_mesh(edge_samples, color, r, M)
     f_v, f_f, f_c = tb_face_mesh(face_samples, color, w)
     v = torch.cat([e_v, f_v], dim=0)
-    f = torch.cat([e_f,f_f], dim=0)
+    f = torch.cat([e_f,f_f + e_v.shape[0]], dim=0)
     c = torch.cat([e_c,f_c],dim=0)
     return v, f, c
     
@@ -470,6 +470,6 @@ def tb_comp(face_samples, edge_samples, face_pred, edge_pred, gt_color=(.3,.7,.8
     v_gt, f_gt, c_gt = tb_mesh(face_samples, edge_samples, gt_color)
     v_p, f_p, c_p = tb_mesh(face_pred, edge_pred, pred_color)
     v = torch.cat([v_gt, v_p], dim=0)
-    f = torch.cat([f_gt, f_p], dim=0)
+    f = torch.cat([f_gt, f_p + v_gt.shape[0]], dim=0)
     c = torch.cat([c_gt, c_p],dim=0)
     return v, f, c
