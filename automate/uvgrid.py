@@ -530,12 +530,12 @@ def cos_corner_angles(edge_samples):
     return torch.nn.functional.cosine_similarity(forward, backward, dim=-1)
 
 
-def render(face_samples, edge_samples, renderer, backfaces=False):
-    quad_mesh = face_mesh(face_samples)
+def render(face_samples, edge_samples, orientations, renderer, backfaces=False):
+    quad_mesh = face_mesh(face_samples, orientations)
     _, _, quad_mat = pyrender.Mesh._get_trimesh_props(quad_mesh, smooth=False, material=None)
     mesh = pyrender.Mesh.from_trimesh(quad_mesh,smooth=False)
 
-    ev, ef, ec = automate.tb_edge_mesh(edge_samples, r = 0.005)
+    ev, ef, ec = tb_edge_mesh(edge_samples, r = 0.005)
     edge_mesh = trimesh.Trimesh(vertices = ev, faces=ef, vertex_colors=ec)
     mesh_edge = pyrender.Mesh.from_trimesh(edge_mesh)
 
@@ -573,16 +573,17 @@ def render(face_samples, edge_samples, renderer, backfaces=False):
     return color
 
 
-def render_comparison(gt_face, gt_edge, pr_face, pr_edge, renderer, backfaces=False):
+def render_comparison(gt_face, gt_edge, pr_face, pr_edge, face_orientations, renderer, backfaces=False):
     pr_face = pr_face.detach().reshape_as(gt_face)
     pr_edge = pr_edge.detach().reshape_as(gt_edge)
+    orientations = face_orientations.detach()
 
-    gt_im = render(gt_face, gt_edge, renderer, backfaces)
-    pr_im = render(pr_face, pr_edge, renderer, backfaces)
+    gt_im = render(gt_face, gt_edge, orientations, renderer, backfaces)
+    pr_im = render(pr_face, pr_edge, orientations, renderer, backfaces)
 
-    return torch.tensor(np.concatenate([gt_im,pr_im],axis=1))
+    return np.concatenate([gt_im,pr_im],axis=1)
 
-def face_mesh(face_samples, color=(1.0, .8, .1, 0.5)):
+def face_mesh(face_samples, orientations, color=(1.0, .8, .1, 0.5)):
     M = face_samples.shape[0]
     N = face_samples.shape[1]
     
@@ -593,7 +594,10 @@ def face_mesh(face_samples, color=(1.0, .8, .1, 0.5)):
             [i+j*N, (i+1)+j*N, (i+1)+(j+1)*N, i+(j+1)*N] for i in range(N-1) for j in range(N-1)
         ])
         for m in range(M)
-    ]).reshape(-1,4)
+    ])
+    quad_faces[orientations == 1,:,:] = torch.flip(quad_faces[orientations == 1,:,:],dims=[2])
+    
+    quad_faces = quad_faces.reshape(-1,4)
     quad_face_alphas = alphas[quad_faces].sum(dim=1) / 4
     quad_face_color = torch.tensor(color).tile((quad_faces.shape[0],1))
     quad_face_color[:,3] *= quad_face_alphas
