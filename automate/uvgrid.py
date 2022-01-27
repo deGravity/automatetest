@@ -6,6 +6,10 @@ from . import PartDataset, SBGCN, LinearBlock, part_to_graph
 from pspy import PartOptions, Part
 import os
 import numpy as np
+import pyrender
+import trimesh
+import os
+os.environ['PYOPENGL_PLATFORM'] = 'egl'
 
 class SimplePartDataModule(pl.LightningDataModule):
     def __init__(
@@ -275,6 +279,10 @@ class UVPredSBGCN(pl.LightningModule):
         render_hidden_sizes = (1024, 1024),
         pred_edges = True,
         pred_faces = True,
+        normal_loss = True,
+        metric_loss = True,
+        arc_loss = True,
+        corner_loss = True,
         sbgcn_k = 0
     ):
         super().__init__()
@@ -291,10 +299,17 @@ class UVPredSBGCN(pl.LightningModule):
         self.sbgcn = SBGCN(f_in, l_in, e_in, v_in, self.sbgcn_hidden_size, self.sbgcn_k)
         self.render_hidden_sizes = render_hidden_sizes
 
+        self.normal_loss = normal_loss and pred_faces
+        self.metric_loss = metric_loss and pred_faces
+        self.arc_loss = arc_loss and pred_edges
+        self.corner_loss = corner_loss and pred_edges
+
         if self.pred_edges:
             self.edge_lin = LinearBlock(self.sbgcn_hidden_size, *self.render_hidden_sizes, 30)
         if self.pred_faces:
             self.surf_lin = LinearBlock(self.sbgcn_hidden_size, *self.render_hidden_sizes, 400)
+        
+        self.save_hyperparameters()
     
     def forward(self, x):
         #e = self.vert_to_edge((self.vert_in(x.vertices), self.edge_in(x.edges)), x.edge_to_vertex[[1,0],:])
@@ -311,84 +326,83 @@ class UVPredSBGCN(pl.LightningModule):
         else:
             return self.pred_faces
     
-    def training_step(self, batch, batch_idx):
-        if self.pred_edges:
-            target_edge = batch.edge_samples.reshape(-1,30)
-        if self.pred_faces:
-            target_surf = batch.face_samples.reshape(-1,400)
-        if self.pred_faces and self.pred_edges:
-            pred_edge, pred_surf = self(batch)
+    def common_step(self, batch, batch_idx, step='train'):
+        pred = self(batch)
+        if self.pred_edges and self.pred_faces:
+            pred_edge, pred_surf = pred
         elif self.pred_edges:
-            pred_edge = self(batch)
+            pred_edge = pred
         else:
-            pred_surf = self(batch)
+            pred_surf = pred
+
+        target_edge = batch.edge_samples
+        target_surf = batch.face_samples
+
+        n_samples = batch.edge_samples.shape[1]
 
         if self.pred_edges:
+            pred_edge = pred_edge.reshape(-1,n_samples,3)
             loss_edge = torch.nn.functional.mse_loss(pred_edge, target_edge)
-            self.log('train_loss_edge', loss_edge)
-            loss = loss_edge
+            self.log(f'{step}_loss_edge', loss_edge)
+
         if self.pred_faces:
+            pred_surf = pred_surf.reshape(-1,n_samples,n_samples,4)
             loss_surf = torch.nn.functional.mse_loss(pred_surf, target_surf)
-            self.log('train_loss_surf', loss_surf)
+            self.log(f'{step}_loss_surf', loss_surf)
+        
+        if self.pred_edges and self.pred_faces:
+            loss = loss_surf + loss_edge
+        elif self.pred_edges:
+            loss = loss_edge
+        else:
             loss = loss_surf
 
-        if self.pred_faces and self.pred_edges:
-            loss = loss_edge + loss_surf
+        if self.normal_loss:
+            target_normals = surface_normals(target_surf)
+            pred_normals = surface_normals(pred_surf)
+            normal_loss = (1.0 - torch.nn.functional.cosine_similarity(target_normals, pred_normals, dim=-1)).mean()
+            self.log(f'{step}_loss_normals', normal_loss)
+            loss = loss + normal_loss
+
+        if self.metric_loss:
+            target_d_u, target_d_v = surface_metric(target_surf)
+            pred_d_u, pred_d_v = surface_metric(pred_surf)
+            metric_loss = (torch.nn.functional.mse_loss(pred_d_u, target_d_u) + torch.nn.functional.mse_loss(pred_d_v, target_d_v)) / 2
+            self.log(f'{step}_loss_metric', metric_loss)
+            loss = loss + metric_loss
+
+        if self.arc_loss:
+            target_arc = arc_lengths(target_edge)
+            pred_arc = arc_lengths(pred_edge)
+            arc_loss = torch.nn.functional.mse_loss(pred_arc, target_arc)
+            self.log(f'{step}_loss_arc', arc_loss)
+            loss = loss + arc_loss
+
+        if self.corner_loss:
+            target_corners = cos_corner_angles(target_edge)
+            pred_corners = cos_corner_angles(pred_edge)
+            corner_loss = torch.nn.functional.mse_loss(pred_corners, target_corners)
+            self.log(f'{step}_loss_corner', corner_loss)
+            loss = loss + corner_loss
         
-        self.log('train_loss',loss)
+        self.log(f'{step}_loss', loss)
+        if self.pred_faces and self.pred_edges:
+            return loss, (pred_surf, pred_edge)
+        elif self.pred_edges:
+            return loss, pred_edge
+        else:
+            return loss, pred_surf
+
+    
+    def training_step(self, batch, batch_idx):
+        loss, _ = self.common_step(batch, batch_idx, 'train')
         return loss
     
     def validation_step(self, batch, batch_idx):
-        if self.pred_edges:
-            target_edge = batch.edge_samples.reshape(-1,30)
-        if self.pred_faces:
-            target_surf = batch.face_samples.reshape(-1,400)
-        if self.pred_faces and self.pred_edges:
-            pred_edge, pred_surf = self(batch)
-        elif self.pred_edges:
-            pred_edge = self(batch)
-        else:
-            pred_surf = self(batch)
-
-        if self.pred_edges:
-            loss_edge = torch.nn.functional.mse_loss(pred_edge, target_edge)
-            self.log('val_loss_edge', loss_edge)
-            loss = loss_edge
-        if self.pred_faces:
-            loss_surf = torch.nn.functional.mse_loss(pred_surf, target_surf)
-            self.log('val_loss_surf', loss_surf)
-            loss = loss_surf
-
-        if self.pred_faces and self.pred_edges:
-            loss = loss_edge + loss_surf
-        
-        self.log('val_loss',loss)
+        loss, _ = self.common_step(batch, batch_idx, 'val')
     
     def test_step(self, batch, batch_idx):
-        if self.pred_edges:
-            target_edge = batch.edge_samples.reshape(-1,30)
-        if self.pred_faces:
-            target_surf = batch.face_samples.reshape(-1,400)
-        if self.pred_faces and self.pred_edges:
-            pred_edge, pred_surf = self(batch)
-        elif self.pred_edges:
-            pred_edge = self(batch)
-        else:
-            pred_surf = self(batch)
-
-        if self.pred_edges:
-            loss_edge = torch.nn.functional.mse_loss(pred_edge, target_edge)
-            self.log('test_loss_edge', loss_edge)
-            loss = loss_edge
-        if self.pred_faces:
-            loss_surf = torch.nn.functional.mse_loss(pred_surf, target_surf)
-            self.log('test_loss_surf', loss_surf)
-            loss = loss_surf
-
-        if self.pred_faces and self.pred_edges:
-            loss = loss_edge + loss_surf
-        
-        self.log('test_loss',loss)
+        loss, _ = self.common_step(batch, batch_idx, 'test')
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
@@ -397,6 +411,7 @@ class UVPredSBGCN(pl.LightningModule):
 # Tensorboard Visualization Helpers
 
 def tb_edge_mesh(edge_samples, color=(1.0, .8, .1), r = 0.001, M=3):
+    edge_samples = edge_samples.detach()
     starts = edge_samples[:,:-1,:].reshape(-1,3)
     ends = edge_samples[:,1:,:].reshape(-1,3)
     N = starts.shape[0]
@@ -419,11 +434,11 @@ def tb_edge_mesh(edge_samples, color=(1.0, .8, .1), r = 0.001, M=3):
 
     edge_verts = edge_verts
     edge_faces = edge_faces
-    edge_colors = torch.tensor(color).tile((edge_verts.shape[0], 1))
+    edge_colors = (torch.tensor(color).tile((edge_verts.shape[0], 1)) * 255).byte()
     return edge_verts, edge_faces, edge_colors
 
 def tb_face_mesh(face_samples, color=(.3,.7,.8), w = 0.001):
-    w = 0.001
+    face_samples = face_samples.detach()
     xyz = face_samples.reshape(-1,4)[:,:3]
     mask = face_samples.reshape(-1,4)[:,3]
     K = len(mask)
@@ -454,7 +469,7 @@ def tb_face_mesh(face_samples, color=(.3,.7,.8), w = 0.001):
 
     cubes_v = cubes_v
     cubes_f = cubes_f
-    cubes_c = cubes_c
+    cubes_c = (cubes_c * 255).byte()
 
     return cubes_v, cubes_f, cubes_c
 
@@ -482,12 +497,12 @@ def surface_normals(face_samples):
 
     n1 = torch.cross(d,r)
     n1m = torch.linalg.norm(n1,dim=-1)
-    n1 = n1 / n1m.unsqueeze(-1)
     n1m[n1m == 0] = 1
+    n1 = n1 / n1m.unsqueeze(-1)
     n2 = torch.cross(r,u)
     n2m = torch.linalg.norm(n2,dim=-1)
-    n2 = n2 / n2m.unsqueeze(-1)
     n2m[n2m == 0] = 1
+    n2 = n2 / n2m.unsqueeze(-1)
     n3 = torch.cross(u,l)
     n3m = torch.linalg.norm(n3,dim=-1)
     n3m[n3m == 0] = 1
@@ -513,3 +528,77 @@ def cos_corner_angles(edge_samples):
     forward = edge_samples[:,2:,:] - edge_samples[:,1:-1,:]
     backward = edge_samples[:,:-2,:] - edge_samples[:,1:-1,:]
     return torch.nn.functional.cosine_similarity(forward, backward, dim=-1)
+
+
+def render(face_samples, edge_samples, renderer, backfaces=False):
+    quad_mesh = face_mesh(face_samples)
+    _, _, quad_mat = pyrender.Mesh._get_trimesh_props(quad_mesh, smooth=False, material=None)
+    mesh = pyrender.Mesh.from_trimesh(quad_mesh,smooth=False)
+
+    ev, ef, ec = automate.tb_edge_mesh(edge_samples, r = 0.005)
+    edge_mesh = trimesh.Trimesh(vertices = ev, faces=ef, vertex_colors=ec)
+    mesh_edge = pyrender.Mesh.from_trimesh(edge_mesh)
+
+    scene = pyrender.Scene()
+    scene.add(mesh)
+    scene.add(mesh_edge)
+    camera = pyrender.OrthographicCamera(xmag=1.0, ymag=1.0)
+    s = np.sqrt(2)/2
+    d = np.sqrt(3)/3
+
+    x = torch.tensor([-s, 0, -s])
+    y = torch.tensor([s, 0, -s])
+    z = torch.tensor([d, -d, d])
+    p = torch.tensor([1,-1, 1])
+    x = torch.cross(y,z)
+    camera_pose = torch.zeros([4,4])
+    camera_pose[:3,0] = x
+    camera_pose[:3,1] = y
+    camera_pose[:3,2] = z
+    camera_pose[:3,3] = p
+    camera_pose[3,3] = 1
+
+    camera_pose
+
+
+    scene.add(camera, pose=camera_pose)
+    light = pyrender.SpotLight(color=np.ones(3), intensity=3.0,
+                            innerConeAngle=np.pi/16.0,
+                            outerConeAngle=np.pi/6.0)
+    scene.add(light, pose=camera_pose)
+    flags = pyrender.constants.RenderFlags.OFFSCREEN
+    if backfaces:
+        flags |= pyrender.constants.RenderFlags.SKIP_CULL_FACES
+    color, _ = renderer.render(scene,flags=flags)
+    return color
+
+
+def render_comparison(gt_face, gt_edge, pr_face, pr_edge, renderer, backfaces=False):
+    pr_face = pr_face.detach().reshape_as(gt_face)
+    pr_edge = pr_edge.detach().reshape_as(gt_edge)
+
+    gt_im = render(gt_face, gt_edge, renderer, backfaces)
+    pr_im = render(pr_face, pr_edge, renderer, backfaces)
+
+    return torch.tensor(np.concatenate([gt_im,pr_im],axis=1))
+
+def face_mesh(face_samples, color=(1.0, .8, .1, 0.5)):
+    M = face_samples.shape[0]
+    N = face_samples.shape[1]
+    
+    vertices = face_samples[:,:,:,:3].reshape(-1,3)
+    alphas = face_samples[:,:,:,3].flatten()
+    quad_faces = torch.stack([
+        m*(N**2) + torch.tensor([
+            [i+j*N, (i+1)+j*N, (i+1)+(j+1)*N, i+(j+1)*N] for i in range(N-1) for j in range(N-1)
+        ])
+        for m in range(M)
+    ]).reshape(-1,4)
+    quad_face_alphas = alphas[quad_faces].sum(dim=1) / 4
+    quad_face_color = torch.tensor(color).tile((quad_faces.shape[0],1))
+    quad_face_color[:,3] *= quad_face_alphas
+    quad_face_color = (255*quad_face_color).byte()
+
+    quad_face_color = torch.cat([quad_face_color, quad_face_color]) # Must duplicated for bugfix (https://github.com/mikedh/trimesh/issues/1471)
+
+    return trimesh.Trimesh(vertices=vertices, faces=quad_faces, face_colors=quad_face_color)
