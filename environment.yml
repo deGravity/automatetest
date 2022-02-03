@@ -2,8 +2,12 @@ name: automate
 channels:
   - pytorch
   - pyg
-  - defaults
+  - fvcore
+  - iopath
+  - bottler
+  - pytorch3d
   - conda-forge
+  - defaults
   
 dependencies:
   - python
@@ -21,3 +25,10 @@ dependencies:
   - dotmap
   - meshplot
   - ipykernel
+  - fvcore
+  - iopath
+  - nvidiacub
+  - pytorch3d
+  - pip
+  - pip:
+    - pyrender

@@ -12,6 +12,18 @@ import os
 os.environ['PYOPENGL_PLATFORM'] = 'egl'
 
 class SimplePartDataModule(pl.LightningDataModule):
+
+    @staticmethod
+    def add_module_specific_args(parent_parser):
+        parser = parent_parser.add_argument_group("SimplePartDataModule")
+        parser.add_argument("--path", type=str)
+        parser.add_argument("--normalize", type=bool, default=True)
+        parser.add_argument("--batch_size", type=int, default=int)
+        parser.add_argument("--shuffle", type=bool, default=True)
+        parser.add_argument("--num_workers", type=int, default=10)
+        parser.add_argument("--persistent_workers", type=bool, default=True)
+        return parent_parser
+        
     def __init__(
         self,
         path, 
@@ -283,7 +295,9 @@ class UVPredSBGCN(pl.LightningModule):
         metric_loss = True,
         arc_loss = True,
         corner_loss = True,
-        sbgcn_k = 0
+        sbgcn_k = 0,
+        render_size = (800,800),
+        render_count = 5
     ):
         super().__init__()
 
@@ -304,12 +318,19 @@ class UVPredSBGCN(pl.LightningModule):
         self.arc_loss = arc_loss and pred_edges
         self.corner_loss = corner_loss and pred_edges
 
+        self.render_size = render_size
+        self.renderer = pyrender.OffscreenRenderer(*self.render_size)
+        self.render_count = render_count
+
         if self.pred_edges:
             self.edge_lin = LinearBlock(self.sbgcn_hidden_size, *self.render_hidden_sizes, 30)
         if self.pred_faces:
             self.surf_lin = LinearBlock(self.sbgcn_hidden_size, *self.render_hidden_sizes, 400)
         
         self.save_hyperparameters()
+
+    def __del__(self):
+        self.renderer.delete()
     
     def forward(self, x):
         #e = self.vert_to_edge((self.vert_in(x.vertices), self.edge_in(x.edges)), x.edge_to_vertex[[1,0],:])
@@ -399,7 +420,11 @@ class UVPredSBGCN(pl.LightningModule):
         return loss
     
     def validation_step(self, batch, batch_idx):
-        loss, _ = self.common_step(batch, batch_idx, 'val')
+        loss, pred = self.common_step(batch, batch_idx, 'val')
+        if batch_idx == 0:
+            tensorboard = self.logger.experiment
+            comparison = render_batch(batch, pred, self.render_count, self.renderer)
+            tensorboard.add_image('val_comparison', comparison, self.current_epoch)
     
     def test_step(self, batch, batch_idx):
         loss, _ = self.common_step(batch, batch_idx, 'test')
@@ -606,3 +631,25 @@ def face_mesh(face_samples, orientations, color=(1.0, .8, .1, 0.5)):
     quad_face_color = torch.cat([quad_face_color, quad_face_color]) # Must duplicated for bugfix (https://github.com/mikedh/trimesh/issues/1471)
 
     return trimesh.Trimesh(vertices=vertices, faces=quad_faces, face_colors=quad_face_color)
+
+def render_batch(batch, pred, count, renderer):
+    face_ids = batch.batch[batch.face_to_flat_topos[1]]
+    edge_ids = batch.batch[batch.edge_to_flat_topos[1]]
+    brep_ids = face_ids.unique()[:min(count, len(face_ids.unique()))]
+    batch_pred_s, batch_pred_e = pred
+    batch_pred_e = batch_pred_e.detach().reshape_as(batch.edge_samples)
+    batch_pred_s = batch_pred_s.detach().reshape_as(batch.face_samples)
+    batch_orientations = batch.faces[:,-1]
+
+    comparisons = []
+
+    for id in brep_ids:
+        face_samples = batch.face_samples[face_ids == id,:,:,:]
+        edge_samples = batch.edge_samples[edge_ids == id,:,:]
+        face_preds = batch_pred_s[face_ids == id,:,:,:]
+        edge_preds = batch_pred_e[edge_ids == id,:,:]
+        orientations = batch_orientations[face_ids == id]
+        comp_im = render_comparison(face_samples, edge_samples, face_preds, edge_preds, orientations, renderer)
+        comparisons.append(torch.from_numpy(comp_im))
+    comparisons = torch.cat(comparisons).permute(2,0,1)
+    return comparisons
