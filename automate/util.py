@@ -3,7 +3,7 @@ import sys
 import os
 import importlib
 import json
-from arg_parsing import from_argparse_args, add_argparse_args
+from .arg_parsing import from_argparse_args, add_argparse_args
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
 

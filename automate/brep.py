@@ -509,6 +509,7 @@ def part_to_graph(part, options):
             mcf_origins],1).float()
         
         data.mcf_refs = torch.tensor(mcf_refs).long().T
+        data.__edge_sets__['mcf_refs'] = ['flat_topos','flat_topos',0]
 
     return data
 
