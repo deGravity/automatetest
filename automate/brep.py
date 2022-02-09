@@ -3,6 +3,7 @@ import torch
 import numpy as np
 from dotmap import DotMap
 from .conversions import torchify
+from torch_geometric.data import Batch
 HAVE_PARASOLID = True
 try:
     import pspy
@@ -307,6 +308,22 @@ def featurize_vert(v, options):
         feature_parts.append(to_flat(v.position))
     return torch.cat(feature_parts).flatten().float()
 
+
+def flatbatch(datalist):
+    batch = Batch.from_data_list(datalist)
+    data = HetData()
+    for key in dir(batch):
+        if key != 'batch' and key != 'ptr':
+            val = getattr(batch, key)
+            if isinstance(val, torch.Tensor):
+                setattr(data, key, val)
+    data.__num_nodes__ = batch.num_nodes
+    data.__edge_sets__ = datalist[0].__edge_sets__
+    data.__node_sets__ = datalist[0].__node_sets__
+    data.__edge_sets__['flat_topos_to_graph_idx'] = len(datalist)
+    return data
+
+
 def part_to_graph(part, options):
     # Add dot (.) access to deserialized parts so they act more like pspy parts
     if isinstance(part, dict):
@@ -372,7 +389,7 @@ def part_to_graph(part, options):
         data.flat_topos = torch.empty((n_topos,0)).float()
         data.num_nodes = n_topos
         data.flat_topos_to_graph_idx = torch.zeros((1,n_topos)).long()
-        data.__edge_sets__['flat_topos_to_graph_idx'] = ['flat_topos']
+        data.__edge_sets__['flat_topos_to_graph_idx'] = [1]
         
         data.face_to_flat_topos = torch.stack([
             torch.arange(n_faces).long(),
