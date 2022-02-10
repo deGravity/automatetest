@@ -13,35 +13,38 @@
 #include <iostream>
 #include "types.h"
 
-class Body {
-public:
-    Body(int id);
-    ~Body();
+namespace pspy {
+    class Body {
+    public:
+        Body(int id);
+        ~Body();
 
-    BREPTopology GetTopology();
+        BREPTopology GetTopology();
 
-    MassProperties GetMassProperties(double accuracy = MASS_ACC);
+        MassProperties GetMassProperties(double accuracy = MASS_ACC);
 
-    Eigen::MatrixXd GetBoundingBox();
+        Eigen::MatrixXd GetBoundingBox();
 
-    int Transform(const Eigen::MatrixXd& xfrm);
+        int Transform(const Eigen::MatrixXd& xfrm);
 
-    void Tesselate(
-        Eigen::MatrixXd& V,
-        Eigen::MatrixXi& F,
-        Eigen::VectorXi& FtoT,
-        Eigen::MatrixXi& EtoT,
-        Eigen::VectorXi& VtoT);
+        void Tesselate(
+            Eigen::MatrixXd& V,
+            Eigen::MatrixXi& F,
+            Eigen::VectorXi& FtoT,
+            Eigen::MatrixXi& EtoT,
+            Eigen::VectorXi& VtoT);
 
-    void debug();
+        void debug();
 
-private:
-    int _id;
-    bool _valid; // If we need to re-compute due to transforms
-};
+    private:
+        int _id;
+        bool _valid; // If we need to re-compute due to transforms
+    };
 
-// Helper Functions
-bool is_body(int id);
-std::vector<Body> read_xt(std::string path);
+    // Helper Functions
+    bool is_body(int id);
+    std::vector<Body> read_xt(std::string path);
+
+}
 
 #endif // !BODY_H_INCLUDED

@@ -5,6 +5,7 @@
 #include <map>
 #include <part.h>
 
+using namespace pspy;
 
 int main(int argc, char** argv) {
     PartOptions options;

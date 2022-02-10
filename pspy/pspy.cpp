@@ -4,6 +4,8 @@
 #include "eclass.h"
 #include "part.h"
 
+using namespace pspy;
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 	// part.h
 
