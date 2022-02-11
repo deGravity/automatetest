@@ -204,7 +204,7 @@ namespace pspy {
         topology.face_loop = face_to_loops;
         topology.face_edge = face_to_edges;
         topology.face_vertex = face_to_vertices;
-        topology.loop_edge = edge_to_loop;
+        topology.loop_edge = loop_to_edges;
         topology.loop_vertex = loop_to_vertices;
         topology.edge_vertex = edge_to_vertices;
 
