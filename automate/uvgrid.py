@@ -4,6 +4,7 @@ import pytorch_lightning as pl
 from torch_scatter import scatter_mean
 from . import PartDataset, SBGCN, LinearBlock, part_to_graph
 from pspy import PartOptions, Part
+from .util import ArgparseInitialized
 import os
 import numpy as np
 import pyrender
@@ -11,30 +12,19 @@ import trimesh
 import os
 os.environ['PYOPENGL_PLATFORM'] = 'egl'
 
-class SimplePartDataModule(pl.LightningDataModule):
-
-    @staticmethod
-    def add_module_specific_args(parent_parser):
-        parser = parent_parser.add_argument_group("SimplePartDataModule")
-        parser.add_argument("--path", type=str)
-        parser.add_argument("--normalize", type=bool, default=True)
-        parser.add_argument("--batch_size", type=int, default=int)
-        parser.add_argument("--shuffle", type=bool, default=True)
-        parser.add_argument("--num_workers", type=int, default=10)
-        parser.add_argument("--persistent_workers", type=bool, default=True)
-        return parent_parser
+class SimplePartDataModule(pl.LightningDataModule, ArgparseInitialized):
         
     def __init__(
         self,
-        path, 
-        normalize = True,
-        batch_size = 32,
-        shuffle = True,
-        num_workers = 10,
-        persistent_workers = True
+        data_path : str, 
+        normalize : bool = True,
+        batch_size : int = 32,
+        shuffle : bool = True,
+        num_workers : int = 10,
+        persistent_workers : bool = True
     ):
         super().__init__()
-        self.path = path
+        self.path = data_path
         self.normalize = normalize
         self.batch_size = batch_size
         self.shuffle = shuffle
@@ -633,19 +623,19 @@ def face_mesh(face_samples, orientations, color=(1.0, .8, .1, 0.5)):
     return trimesh.Trimesh(vertices=vertices, faces=quad_faces, face_colors=quad_face_color)
 
 def render_batch(batch, pred, count, renderer):
-    face_ids = batch.batch[batch.face_to_flat_topos[1]]
-    edge_ids = batch.batch[batch.edge_to_flat_topos[1]]
-    brep_ids = face_ids.unique()[:min(count, len(face_ids.unique()))]
+    face_ids = batch.batch[batch.face_to_flat_topos[1]].to('cpu')
+    edge_ids = batch.batch[batch.edge_to_flat_topos[1]].to('cpu')
+    brep_ids = face_ids.unique().to('cpu')[:min(count, len(face_ids.unique()))]
     batch_pred_s, batch_pred_e = pred
-    batch_pred_e = batch_pred_e.detach().reshape_as(batch.edge_samples)
-    batch_pred_s = batch_pred_s.detach().reshape_as(batch.face_samples)
-    batch_orientations = batch.faces[:,-1]
+    batch_pred_e = batch_pred_e.detach().to('cpu').reshape_as(batch.edge_samples)
+    batch_pred_s = batch_pred_s.detach().to('cpu').reshape_as(batch.face_samples)
+    batch_orientations = batch.faces[:,-1].to('cpu')
 
     comparisons = []
 
     for id in brep_ids:
-        face_samples = batch.face_samples[face_ids == id,:,:,:]
-        edge_samples = batch.edge_samples[edge_ids == id,:,:]
+        face_samples = batch.face_samples[face_ids == id,:,:,:].to('cpu')
+        edge_samples = batch.edge_samples[edge_ids == id,:,:].to('cpu')
         face_preds = batch_pred_s[face_ids == id,:,:,:]
         edge_preds = batch_pred_e[edge_ids == id,:,:]
         orientations = batch_orientations[face_ids == id]
