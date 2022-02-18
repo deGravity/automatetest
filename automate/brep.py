@@ -135,6 +135,8 @@ def pad_to(tensor, length):
         return pad_to(torch.tensor(tensor), length)
     return torch.cat([tensor, torch.zeros(length - tensor.size(0))]).float()
 
+FACE_PARAM_SIZE = 11 # The maximum parameter size for a face is 8
+                    # so we will pad all parameter arrays to size 8
 class FaceFeatures:
     r"""
     Options for which features to load for each BREP Face
@@ -155,9 +157,36 @@ class FaceFeatures:
         self.na_bounding_box = True
         self.center_of_gravity = True
         self.moment_of_inertia = True
+    
+    def size(self):
+        s = 0
+        if self.parametric_function:
+            s += 13
+            if self.parameter_values:
+                s += FACE_PARAM_SIZE
+        
+                if self.exclude_origin:
+                    s -= 3
+        if self.face.orientation:
+            s += 1
+    
+        if self.face.surface_area:
+            s += 1
+        if self.face.circumference:
+            s += 1
+        if self.face.bounding_box:
+            s += 6
+        if self.face.na_bounding_box:
+            s += 15
+        if self.face.center_of_gravity:
+            s += 3
+        if self.face.moment_of_inertia:
+            s += 9
 
-FACE_PARAM_SIZE = 11 # The maximum parameter size for a face is 8
-                    # so we will pad all parameter arrays to size 8
+        return s
+
+
+
 def featurize_face(f, options):
     if not isinstance(f, dict):
         f = DotMap(torchify(f))
@@ -201,6 +230,22 @@ class LoopFeatures:
         self.na_bounding_box = True
         self.center_of_gravity = True
         self.moment_of_inertia = True
+    
+    def size(self):
+        s = 0
+        if self.type:
+            s += 10
+        if self.length:
+            s += 1
+        if self.na_bounding_box:
+            s += 15
+        if self.center_of_gravity:
+            s += 3
+        if self.moment_of_inertia:
+            s += 9
+        
+        return s
+
 
 def featurize_loop(l, options):
     if not isinstance(l, dict):
@@ -222,6 +267,9 @@ def featurize_loop(l, options):
         feature_parts.append(to_flat(l.moment_of_inertia))
     
     return torch.cat(feature_parts).flatten().float()
+
+
+EDGE_PARAM_SIZE = 11
 
 class EdgeFeatures:
     r"""
@@ -248,9 +296,39 @@ class EdgeFeatures:
 
         self.center_of_gravity = True
         self.moment_of_inertia = True
+    
+    def size(self):
+        s = 0
+        if self.parametric_function:
+            s += 11
+            if self.parameter_values:
+                s += EDGE_PARAM_SIZE
+
+                if self.exclude_origin:
+                    s -= 3
+        if self.orientation:
+            s += 1
+        if self.t_range:
+            s += 2
+        if self.length:
+            s += 1
+        if self.start:
+            s += 3
+        if self.end:
+            s += 3
+        if self.mid_point:
+            s += 3
+        if self.bounding_box:
+            s += 6
+        if self.na_bounding_box:
+            s += 15
+        if self.center_of_gravity:
+            s += 3
+        if self.moment_of_inertia:
+            s += 9
+        return s
         
 
-EDGE_PARAM_SIZE = 11
 def featurize_edge(e, options):
     if not isinstance(e, dict):
         e = DotMap(torchify(e))
@@ -299,6 +377,9 @@ class VertexFeatures:
     """
     def __init__(self):
         self.position = True
+
+    def size(self):
+        return 3 if self.position else 0
 
 def featurize_vert(v, options):
     if not isinstance(v, dict):
@@ -365,14 +446,11 @@ def part_to_graph(part, options):
         edge_features = [featurize_edge(f, options) for f in part.brep.nodes.edges]
         vert_features = [featurize_vert(f, options) for f in part.brep.nodes.vertices]
 
-        data.faces = torch.stack(face_features)
+        data.faces = torch.stack(face_features) if face_features else torch.empty((0, options.face.size()), dtype=torch.float)
         data.__node_sets__.add('faces')
-        data.loops = torch.stack(loop_features)
-        data.edges = torch.stack(edge_features)
-        if len(vert_features) > 0:
-            data.vertices = torch.stack(vert_features)
-        else: 
-            data.vertices = torch.empty((0,3)).float()
+        data.loops = torch.stack(loop_features) if loop_features else torch.empty((0, options.loop.size()), dtype=torch.float)
+        data.edges = torch.stack(edge_features) if edge_features else torch.empty((0, options.edge.size()), dtype=torch.float)
+        data.vertices = torch.stack(vert_features) if vert_features else torch.empty((0, options.vertex.size()), dtype=torch.float)
 
         data.face_to_loop = to_index(part.brep.relations.face_to_loop)
         data.__edge_sets__['face_to_loop'] = ['faces', 'loops']
