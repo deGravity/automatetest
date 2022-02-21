@@ -586,3 +586,85 @@ void Face::sample_points(
     delete[] point_topos;
     delete[] uv_grid;
 }
+
+
+void Face::random_sample_points(
+    const int num_points,
+    Eigen::MatrixXd& samples,
+    Eigen::MatrixXd& coords,
+    Eigen::MatrixXd& uv_range) {
+
+    // Find UV bounding box
+    PK_ERROR_t err = PK_ERROR_no_errors;
+    PK_UVBOX_t uv_box;
+    err = PK_FACE_find_uvbox(_id, &uv_box);
+    //assert(err == PK_ERROR_no_errors || err == PK_ERROR_no_geometry); // Commented out because of error 900, we'll just return empty samples on an error
+    uv_range.resize(2, 2);
+    uv_range <<
+        uv_box.param[0], uv_box.param[1],
+        uv_box.param[2], uv_box.param[3];
+
+    samples.resize(num_points, 7);
+    coords.resize(num_points, 2);
+    samples.setZero();
+    coords.setZero();
+
+    // Return Zeroed Samples if there is no surface
+    if (_surf == PK_ENTITY_null || err != PK_ERROR_no_errors) {
+        return;
+    }
+
+    // Randomly Choose sample points in [0,1]
+    coords = Eigen::MatrixXd::Random(num_points, 2); // Random() is in [-1,1]
+    coords.array() += 1.0; // Shift to [0, 2]
+    coords.array() /= 2.0; // Compress to [0, 1]
+
+    // Get U and V sample points within the box by scaling
+    Eigen::ArrayXd u_samples = (1.0 - coords.col(0).array()) * uv_box.param[0] + coords.col(0).array() * uv_box.param[2];
+    Eigen::ArrayXd v_samples = (1.0 - coords.col(1).array()) * uv_box.param[1] + coords.col(1).array() * uv_box.param[3];
+
+    for (int i = 0; i < num_points; ++i) {
+        double u = u_samples[i];
+        double v = v_samples[i];
+        PK_UV_t uv;
+        uv.param[0] = u;
+        uv.param[1] = v;
+        PK_VECTOR_t point;
+        PK_VECTOR_t normal;
+        err = PK_SURF_eval_with_normal(
+            _surf,
+            uv,
+            0,
+            0,
+            PK_LOGICAL_false,
+            &point,
+            &normal
+        );
+        for (int j = 0; j < 3; ++j) {
+            samples(i, j) = point.coord[j];
+            samples(i, j + 3) = normal.coord[j];
+        }
+    }
+
+    PK_TOPOL_t* point_topos = new PK_TOPOL_t[num_points];
+    PK_FACE_contains_vectors_o_t contains_vectors_opt;
+    PK_FACE_contains_vectors_o_m(contains_vectors_opt);
+    contains_vectors_opt.is_on_surf = PK_LOGICAL_true;
+    PK_UV_t* uv_grid = new PK_UV_t[num_points];
+    int k = 0;
+    for (int i = 0; i < num_points; ++i) {
+        uv_grid[i].param[0] = u_samples[i];
+        uv_grid[i].param[1] = v_samples[i];
+    }
+    contains_vectors_opt.n_uvs = num_points;
+    contains_vectors_opt.uvs = uv_grid;
+    err = PK_FACE_contains_vectors(_id, &contains_vectors_opt, point_topos);
+    assert(err == PK_ERROR_no_errors); // PK_FACE_contains_vectors
+
+    for (int i = 0; i < num_points; ++i) {
+        samples(i, 6) = (point_topos[i] == NULL) ? 0.0 : 1.0;
+    }
+
+    delete[] point_topos;
+    delete[] uv_grid;
+}

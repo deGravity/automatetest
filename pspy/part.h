@@ -12,6 +12,7 @@ struct PartOptions {
 	bool transform = false;
 	Eigen::Matrix<double, 4, 4> transform_matrix;
 	int num_uv_samples = 10;
+	int num_random_samples = 0;
 	bool sample_normals = true;
 	bool sample_tangents = true;
 	bool tesselate = true;
@@ -144,6 +145,13 @@ struct PartSamples {
 	std::vector< std::vector< Eigen::VectorXd> > edge_samples;
 };
 
+struct PartRandomSamples {
+	void init(BREPTopology& topology, PartOptions options);
+	std::vector<Eigen::MatrixXd> samples;
+	std::vector<Eigen::MatrixXd> coords;
+	std::vector<Eigen::MatrixXd> uv_box;
+};
+
 struct PartSummary {
 	void init(BREPTopology& topology, MassProperties& mass_props, Eigen::MatrixXd& bounding_box);
 	Eigen::MatrixXd bounding_box;
@@ -195,6 +203,7 @@ struct Part {
 	MeshTopology mesh_topology;
 	PartTopology brep;
 	PartSamples samples;
+	PartRandomSamples random_samples;
 	PartSummary summary;
 	PartUniqueInferences inferences;
 	std::vector<MCF> default_mcfs;

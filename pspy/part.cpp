@@ -62,6 +62,10 @@ Part::Part(const std::string& path, PartOptions options)
 		samples.init(topology, options);
 	}
 
+	if (options.num_random_samples > 0) {
+		random_samples.init(topology, options);
+	}
+
 	summary.init(topology, mass_properties, bounding_box);
 
 	if (options.collect_inferences) {
@@ -403,6 +407,19 @@ void PartSamples::init(BREPTopology& topology, PartOptions options)
 		topology.edges[i].sample_points(num_points, sample_tangents, edge_samples[i], t_range);
 	}
 }
+
+void PartRandomSamples::init(BREPTopology& topology, PartOptions options)
+{
+	const int num_points = options.num_random_samples;
+	const int n_faces = topology.faces.size();
+	samples.resize(n_faces);
+	coords.resize(n_faces);
+	uv_box.resize(n_faces);
+	for (int i = 0; i < n_faces; ++i) {
+		topology.faces[i].random_sample_points(num_points, samples[i], coords[i], uv_box[i]);
+	}
+}
+
 
 void PartSummary::init(BREPTopology& topology, MassProperties& mass_props, Eigen::MatrixXd& bb)
 {

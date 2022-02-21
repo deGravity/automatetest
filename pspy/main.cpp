@@ -10,7 +10,8 @@ int main(int argc, char** argv) {
     PartOptions options;
     options.onshape_style = false;
     options.default_mcfs_only_face_axes = false;
-    options.num_uv_samples = 100;
+    options.num_uv_samples = 0;
+    options.num_random_samples = 100;
     options.collect_inferences = false;
     options.default_mcfs = false;
 

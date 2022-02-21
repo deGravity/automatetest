@@ -54,6 +54,12 @@ struct Face {
         std::vector<Eigen::MatrixXd>& samples,
         Eigen::MatrixXd& uv_box);
 
+    void random_sample_points(
+        const int num_points,
+        Eigen::MatrixXd& samples,
+        Eigen::MatrixXd& coords,
+        Eigen::MatrixXd& uv_box);
+
 };
 
 
