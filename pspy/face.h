@@ -44,8 +44,6 @@ struct Face {
 struct PSFace: public Face {
     PSFace(int id);
 
-    std::vector<Inference> get_inferences() override;
-
     void init_parametric_function();
 
     void init_bb();
@@ -58,6 +56,13 @@ struct PSFace: public Face {
     void init_sphere();
     void init_torus();
     void init_spun();
+
+    std::vector<Inference> get_inferences() override;
+
+    void add_inferences_plane(std::vector<Inference>& inferences);
+    void add_inferences_cone(std::vector<Inference>& inferences);
+    void add_inferences_sphere(std::vector<Inference>& inferences);
+    void add_inferences_axial(std::vector<Inference>& inferences);
 
     int _id;
     int _surf;

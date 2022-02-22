@@ -1,7 +1,7 @@
 #include "loop.h"
 #include "loop.h"
 
-Loop::Loop(int id)
+PSLoop::PSLoop(int id)
 {
     _id = id;
 
@@ -102,7 +102,7 @@ Loop::Loop(int id)
     PK_MEMORY_free(edges);
 }
 
-std::vector<Inference> Loop::get_inferences()
+std::vector<Inference> PSLoop::get_inferences()
 {
     std::vector<Inference> inferences;
 

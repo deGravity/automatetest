@@ -9,7 +9,7 @@
 #include <assert.h>
 #include <float.h>
 
-Edge::Edge(int id) {
+PSEdge::PSEdge(int id) {
     _id = id;
 
     PK_ERROR_t err = PK_ERROR_no_errors;
@@ -114,7 +114,7 @@ Edge::Edge(int id) {
 
 }
 
-void Edge::init_line() {
+void PSEdge::init_line() {
     PK_ERROR_t err = PK_ERROR_no_errors;
     PK_LINE_sf_t line_sf;
     err = PK_LINE_ask(_curve, &line_sf);
@@ -128,7 +128,7 @@ void Edge::init_line() {
     parameters.push_back(line_sf.basis_set.axis.coord[2]);
 }
 
-void Edge::init_circle() {
+void PSEdge::init_circle() {
     PK_ERROR_t err = PK_ERROR_no_errors;
     PK_CIRCLE_sf_t circle_sf;
     err = PK_CIRCLE_ask(_curve, &circle_sf);
@@ -146,7 +146,7 @@ void Edge::init_circle() {
     parameters.push_back(circle_sf.radius);
 }
 
-void Edge::init_ellipse() {
+void PSEdge::init_ellipse() {
     PK_ERROR_t err = PK_ERROR_no_errors;
     PK_ELLIPSE_sf_t ellipse_sf;
     err = PK_ELLIPSE_ask(_curve, &ellipse_sf);
@@ -165,7 +165,7 @@ void Edge::init_ellipse() {
     parameters.push_back(ellipse_sf.R2);
 }
 
-void Edge::init_bb() {
+void PSEdge::init_bb() {
     PK_ERROR_t err = PK_ERROR_no_errors;
     // Get Bounding Box
     PK_BOX_t box;
@@ -182,7 +182,7 @@ void Edge::init_bb() {
     }
 }
 
-void Edge::init_nabb() {
+void PSEdge::init_nabb() {
     PK_ERROR_t err = PK_ERROR_no_errors;
     // Get Non-Aligned Bounding Box
     // Axes are ordered so X is largest, Y is second largest, Z is smallest
@@ -219,7 +219,7 @@ void Edge::init_nabb() {
         nabox.box.coord[3], nabox.box.coord[4], nabox.box.coord[5];
 }
 
-std::vector<Inference> Edge::get_inferences()
+std::vector<Inference> PSEdge::get_inferences()
 {
     std::vector<Inference> inferences;
 
@@ -241,7 +241,7 @@ std::vector<Inference> Edge::get_inferences()
     return inferences;
 }
 
-void Edge::add_inferences_circle_or_ellipse(std::vector<Inference>& inferences)
+void PSEdge::add_inferences_circle_or_ellipse(std::vector<Inference>& inferences)
 {
     Inference inf;
     inf.inference_type = InferenceType::CENTER;
@@ -302,7 +302,7 @@ void Edge::add_inferences_circle_or_ellipse(std::vector<Inference>& inferences)
     inferences.push_back(inf);
 }
 
-void Edge::add_inferences_line(std::vector<Inference>& inferences)
+void PSEdge::add_inferences_line(std::vector<Inference>& inferences)
 {
     Inference inf;
     inf.inference_type = InferenceType::MID_POINT;
@@ -312,7 +312,7 @@ void Edge::add_inferences_line(std::vector<Inference>& inferences)
     inferences.push_back(inf);
 }
 
-void Edge::add_inferences_other(std::vector<Inference>& inferences)
+void PSEdge::add_inferences_other(std::vector<Inference>& inferences)
 {
     Inference inf;
     inf.inference_type = InferenceType::MID_POINT;
@@ -322,7 +322,7 @@ void Edge::add_inferences_other(std::vector<Inference>& inferences)
     inferences.push_back(inf);
 }
 
-void Edge::sample_points(const int num_points, const bool sample_tangents, std::vector<Eigen::VectorXd>& samples, Eigen::Vector2d& t_range)
+void PSEdge::sample_points(const int num_points, const bool sample_tangents, std::vector<Eigen::VectorXd>& samples, Eigen::Vector2d& t_range)
 {
     // t_start and t_end already account for edge "sense"
     t_range(0) = t_start;

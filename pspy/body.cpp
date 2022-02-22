@@ -80,19 +80,19 @@ BREPTopology Body::GetTopology() {
         switch (classes[i]) {
         case PK_CLASS_face:
             cat_idx[i] = topology.faces.size();
-            topology.faces.emplace_back(topols[i]);
+            topology.faces.emplace_back(new PSFace(topols[i]));
             break;
         case PK_CLASS_loop:
             cat_idx[i] = topology.loops.size();
-            topology.loops.emplace_back(topols[i]);
+            topology.loops.emplace_back(new PSLoop(topols[i]));
             break;
         case PK_CLASS_edge:
             cat_idx[i] = topology.edges.size();
-            topology.edges.emplace_back(topols[i]);
+            topology.edges.emplace_back(new PSEdge(topols[i]));
             break;
         case PK_CLASS_vertex:
             cat_idx[i] = topology.vertices.size();
-            topology.vertices.emplace_back(topols[i]);
+            topology.vertices.emplace_back(new PSVertex(topols[i]));
             break;
         default:
             break;

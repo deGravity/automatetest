@@ -73,13 +73,15 @@ elif platform == "win32" or platform == "cygwin":
     eigen3 = join(dn, 'eigen3')
     parasolid = join(dn, 'parasolid')
     parasolid_lib_dir = join(dn, 'parasolid', 'lib')
+    opencascade = join(dn, 'opencascade')
+    opencascade_lib_dir = join(dn, 'opencascade', 'win64', 'vc14', 'lib')
     extract_library(parasolid_library, parasolid_lib_dir)
     ext_modules = [
         CppExtension(
             'pspy_cpp',
             cpp_sources,
-            include_dirs= [eigen3, parasolid],
-            library_dirs = [parasolid_lib_dir],
+            include_dirs= [eigen3, parasolid, opencascade],
+            library_dirs = [parasolid_lib_dir, opencascade_lib_dir],
             libraries = [parasolid_library]
         )
     ]

@@ -53,7 +53,7 @@ struct PartInference {
 };
 
 struct PartFace {
-	PartFace(Face& f, int i);
+	PartFace(std::unique_ptr<Face>& f, int i);
 	int index;
 	SurfaceFunction function;
 	std::vector<double> parameters;
@@ -73,7 +73,7 @@ struct PartFace {
 };
 
 struct PartLoop {
-	PartLoop(Loop& l, int i);
+	PartLoop(std::unique_ptr<Loop>& l, int i);
 	int index;
 	LoopType type;
 	double length;
@@ -88,7 +88,7 @@ struct PartLoop {
 };
 
 struct PartEdge {
-	PartEdge(Edge& e, int i);
+	PartEdge(std::unique_ptr<Edge>& e, int i);
 	int index;
 	CurveFunction function;
 	std::vector<double> parameters;
@@ -110,7 +110,7 @@ struct PartEdge {
 };
 
 struct PartVertex {
-	PartVertex(Vertex& v, int i);
+	PartVertex(std::unique_ptr<Vertex>& v, int i);
 	int index;
 	Eigen::Vector3d position;
 

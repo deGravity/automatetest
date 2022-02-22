@@ -7,7 +7,7 @@
 #include <parasolid.h>
 #include <assert.h>
 
-Face::Face(int id) {
+PSFace::PSFace(int id) {
     _id = id;
 
     PK_ERROR_t err = PK_ERROR_no_errors;
@@ -36,7 +36,7 @@ Face::Face(int id) {
 
 }
 
-void Face::init_parametric_function() {
+void PSFace::init_parametric_function() {
     PK_ERROR_t err = PK_ERROR_no_errors;
 
     if (!_has_surface) {
@@ -88,7 +88,7 @@ void Face::init_parametric_function() {
     }
 }
 
-void Face::init_bb() {
+void PSFace::init_bb() {
     PK_ERROR_t err = PK_ERROR_no_errors;
     // Get Bounding Box
     PK_BOX_t box;
@@ -105,7 +105,7 @@ void Face::init_bb() {
     }
 }
 
-void Face::init_nabb() {
+void PSFace::init_nabb() {
     PK_ERROR_t err = PK_ERROR_no_errors;
     // Get Non-Aligned Bounding Box
     // Axes are ordered so X is largest, Y is second largest, Z is smallest
@@ -150,7 +150,7 @@ void Face::init_nabb() {
         nabox.box.coord[3], nabox.box.coord[4], nabox.box.coord[5];
 }
 
-void Face::init_mass_props() {
+void PSFace::init_mass_props() {
     if (!_has_surface) {
         surface_area = 0;
         center_of_gravity.setZero();
@@ -165,7 +165,7 @@ void Face::init_mass_props() {
     circumference = m.periphery;
 }
 
-void Face::init_plane() {
+void PSFace::init_plane() {
     PK_ERROR_t err = PK_ERROR_no_errors;
     PK_PLANE_sf_t plane_sf;
     PK_PLANE_ask(_surf, &plane_sf);
@@ -182,7 +182,7 @@ void Face::init_plane() {
     parameters.push_back(plane_sf.basis_set.ref_direction.coord[2]);
 }
 
-void Face::init_cyl() {
+void PSFace::init_cyl() {
     PK_ERROR_t err = PK_ERROR_no_errors;
     PK_CYL_sf_t cylinder;
     err = PK_CYL_ask(_surf, &cylinder);
@@ -200,7 +200,7 @@ void Face::init_cyl() {
     parameters.push_back(cylinder.radius);
 }
 
-void Face::init_cone() {
+void PSFace::init_cone() {
     PK_ERROR_t err = PK_ERROR_no_errors;
     PK_CONE_sf_t cone;
     err = PK_CONE_ask(_surf, &cone);
@@ -219,7 +219,7 @@ void Face::init_cone() {
     parameters.push_back(cone.semi_angle);                  // 10 - semi-angle
 }
 
-void Face::init_sphere() {
+void PSFace::init_sphere() {
     PK_ERROR_t err = PK_ERROR_no_errors;
     PK_SPHERE_sf_t sphere;
     PK_SPHERE_ask(_surf, &sphere);
@@ -237,7 +237,7 @@ void Face::init_sphere() {
     parameters.push_back(sphere.radius);
 }
 
-void Face::init_torus() {
+void PSFace::init_torus() {
     PK_ERROR_t err = PK_ERROR_no_errors;
     PK_TORUS_sf_t torus;
     err = PK_TORUS_ask(_surf, &torus);
@@ -256,7 +256,7 @@ void Face::init_torus() {
     parameters.push_back(torus.minor_radius);
 }
 
-void Face::init_spun() {
+void PSFace::init_spun() {
     PK_ERROR_t err = PK_ERROR_none;
     PK_SPUN_sf_t spun;
     err = PK_SPUN_ask(_surf, &spun);
@@ -269,7 +269,7 @@ void Face::init_spun() {
     parameters.push_back(spun.axis.axis.coord[1]);
     parameters.push_back(spun.axis.axis.coord[2]);
 }
-std::vector<Inference> Face::get_inferences()
+std::vector<Inference> PSFace::get_inferences()
 {
     std::vector<Inference> inferences;
     switch (function) {
@@ -297,7 +297,7 @@ std::vector<Inference> Face::get_inferences()
     }
     return inferences;
 }
-void Face::add_inferences_plane(std::vector<Inference>& inferences)
+void PSFace::add_inferences_plane(std::vector<Inference>& inferences)
 {
     // Centroid of plane, oriented with the _face_ normal
     // (so flipped if the plane geometry is also)
@@ -318,7 +318,7 @@ void Face::add_inferences_plane(std::vector<Inference>& inferences)
     }
     inferences.push_back(inf);
 }
-void Face::add_inferences_cone(std::vector<Inference>& inferences)
+void PSFace::add_inferences_cone(std::vector<Inference>& inferences)
 {
     // Tip of cone, oriented along cone axis
     double radius = parameters[9];
@@ -336,7 +336,7 @@ void Face::add_inferences_cone(std::vector<Inference>& inferences)
     }
     inferences.push_back(tip_inf);
 }
-void Face::add_inferences_sphere(std::vector<Inference>& inferences)
+void PSFace::add_inferences_sphere(std::vector<Inference>& inferences)
 {
     // Center of sphere, oriented with z-axis
     Inference inf;
@@ -345,7 +345,7 @@ void Face::add_inferences_sphere(std::vector<Inference>& inferences)
     inf.z_axis = Eigen::Vector3d(0.0, 0.0, 1.0);
     inferences.push_back(inf);
 }
-void Face::add_inferences_axial(std::vector<Inference>& inferences)
+void PSFace::add_inferences_axial(std::vector<Inference>& inferences)
 {
     // Top, Mid-Point, and Bottom of face as projected onto central
     // axis, oriented parallel to the central axis
@@ -416,7 +416,7 @@ void Face::add_inferences_axial(std::vector<Inference>& inferences)
     inferences.push_back(mid_axis);
 }
 
-void Face::sample_points(
+void PSFace::sample_points(
     const int num_points,
     const bool sample_normals,
     std::vector<Eigen::MatrixXd>& samples,
@@ -588,7 +588,7 @@ void Face::sample_points(
 }
 
 
-void Face::random_sample_points(
+void PSFace::random_sample_points(
     const int num_points,
     Eigen::MatrixXd& samples,
     Eigen::MatrixXd& coords,

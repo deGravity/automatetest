@@ -302,24 +302,24 @@ void PartTopologyNodes::init(BREPTopology& topology)
 
 }
 
-PartFace::PartFace(Face& f, int i)
+PartFace::PartFace(std::unique_ptr<Face>& f, int i)
 {
 	index = i;
-	function = f.function;
-	parameters = f.parameters;
-	orientation = f.orientation;
-	bounding_box = f.bounding_box;
+	function = f->function;
+	parameters = f->parameters;
+	orientation = f->orientation;
+	bounding_box = f->bounding_box;
 	na_bounding_box.resize(5, 3);
-	na_bounding_box.block<1, 3>(0, 0) = f.na_bb_center;
-	na_bounding_box.block<1, 3>(1, 0) = f.na_bb_x;
-	na_bounding_box.block<1, 3>(2, 0) = f.na_bb_z;
-	na_bounding_box.block<2, 3>(3, 0) = f.na_bounding_box;
-	surface_area = f.surface_area;
-	circumference = f.circumference;
-	center_of_gravity = f.center_of_gravity;
-	moment_of_inertia = f.moment_of_inertia;
+	na_bounding_box.block<1, 3>(0, 0) = f->na_bb_center;
+	na_bounding_box.block<1, 3>(1, 0) = f->na_bb_x;
+	na_bounding_box.block<1, 3>(2, 0) = f->na_bb_z;
+	na_bounding_box.block<2, 3>(3, 0) = f->na_bounding_box;
+	surface_area = f->surface_area;
+	circumference = f->circumference;
+	center_of_gravity = f->center_of_gravity;
+	moment_of_inertia = f->moment_of_inertia;
 
-	auto infs = f.get_inferences();
+	auto infs = f->get_inferences();
 	inferences.reserve(infs.size());
 	for (auto& inf : infs) {
 		inferences.emplace_back(inf, TopologyType::FACE, index);
@@ -327,63 +327,63 @@ PartFace::PartFace(Face& f, int i)
 
 }
 
-PartLoop::PartLoop(Loop& l, int i)
+PartLoop::PartLoop(std::unique_ptr<Loop>& l, int i)
 {
 	index = i;
-	type = l._type;
-	length = l.length;
-	center_of_gravity = l.center_of_gravity;
-	moment_of_inertia = l.moment_of_inertia;
+	type = l->_type;
+	length = l->length;
+	center_of_gravity = l->center_of_gravity;
+	moment_of_inertia = l->moment_of_inertia;
 
 	na_bounding_box.resize(5, 3);
-	na_bounding_box.block<1, 3>(0, 0) = l.na_bb_center;
-	na_bounding_box.block<1, 3>(1, 0) = l.na_bb_x;
-	na_bounding_box.block<1, 3>(2, 0) = l.na_bb_z;
-	na_bounding_box.block<2, 3>(3, 0) = l.na_bounding_box;
+	na_bounding_box.block<1, 3>(0, 0) = l->na_bb_center;
+	na_bounding_box.block<1, 3>(1, 0) = l->na_bb_x;
+	na_bounding_box.block<1, 3>(2, 0) = l->na_bb_z;
+	na_bounding_box.block<2, 3>(3, 0) = l->na_bounding_box;
 
-	auto infs = l.get_inferences();
+	auto infs = l->get_inferences();
 	inferences.reserve(infs.size());
 	for (auto& inf : infs) {
 		inferences.emplace_back(inf, TopologyType::LOOP, index);
 	}
 }
 
-PartEdge::PartEdge(Edge& e, int i)
+PartEdge::PartEdge(std::unique_ptr<Edge>& e, int i)
 {
 	index = i;
-	function = e.function;
-	parameters = e.parameters;
-	orientation = !e._is_reversed;
+	function = e->function;
+	parameters = e->parameters;
+	orientation = !e->_is_reversed;
 	t_range.resize(2);
-	t_range(0) = e.t_start;
-	t_range(1) = e.t_end;
-	start = e.start;
-	end = e.end;
-	is_periodic = e.is_periodic;
-	mid_point = e.mid_point;
-	length = e.length;
-	center_of_gravity = e.center_of_gravity;
-	moment_of_inertia = e.moment_of_inertia;
-	bounding_box = e.bounding_box;
+	t_range(0) = e->t_start;
+	t_range(1) = e->t_end;
+	start = e->start;
+	end = e->end;
+	is_periodic = e->is_periodic;
+	mid_point = e->mid_point;
+	length = e->length;
+	center_of_gravity = e->center_of_gravity;
+	moment_of_inertia = e->moment_of_inertia;
+	bounding_box = e->bounding_box;
 	na_bounding_box.resize(5, 3);
-	na_bounding_box.block<1, 3>(0, 0) = e.na_bb_center;
-	na_bounding_box.block<1, 3>(1, 0) = e.na_bb_x;
-	na_bounding_box.block<1, 3>(2, 0) = e.na_bb_z;
-	na_bounding_box.block<2, 3>(3, 0) = e.na_bounding_box;
+	na_bounding_box.block<1, 3>(0, 0) = e->na_bb_center;
+	na_bounding_box.block<1, 3>(1, 0) = e->na_bb_x;
+	na_bounding_box.block<1, 3>(2, 0) = e->na_bb_z;
+	na_bounding_box.block<2, 3>(3, 0) = e->na_bounding_box;
 
-	auto infs = e.get_inferences();
+	auto infs = e->get_inferences();
 	inferences.reserve(infs.size());
 	for (auto& inf : infs) {
 		inferences.emplace_back(inf, TopologyType::EDGE, index);
 	}
 }
 
-PartVertex::PartVertex(Vertex& v, int i)
+PartVertex::PartVertex(std::unique_ptr<Vertex>& v, int i)
 {
 	index = i;
-	position = v.position;
+	position = v->position;
 
-	auto infs = v.get_inferences();
+	auto infs = v->get_inferences();
 	inferences.reserve(infs.size());
 	for (auto& inf : infs) {
 		inferences.emplace_back(inf, TopologyType::VERTEX, index);
@@ -398,13 +398,13 @@ void PartSamples::init(BREPTopology& topology, PartOptions options)
 	Eigen::MatrixXd uv_box;
 	face_samples.resize(topology.faces.size());
 	for (int i = 0; i < topology.faces.size(); ++i) {
-		topology.faces[i].sample_points(num_points, sample_normals, face_samples[i], uv_box);
+		topology.faces[i]->sample_points(num_points, sample_normals, face_samples[i], uv_box);
 	}
 
 	Eigen::Vector2d t_range;
 	edge_samples.resize(topology.edges.size());
 	for (int i = 0; i < topology.edges.size(); ++i) {
-		topology.edges[i].sample_points(num_points, sample_tangents, edge_samples[i], t_range);
+		topology.edges[i]->sample_points(num_points, sample_tangents, edge_samples[i], t_range);
 	}
 }
 
@@ -416,7 +416,7 @@ void PartRandomSamples::init(BREPTopology& topology, PartOptions options)
 	coords.resize(n_faces);
 	uv_box.resize(n_faces);
 	for (int i = 0; i < n_faces; ++i) {
-		topology.faces[i].random_sample_points(num_points, samples[i], coords[i], uv_box[i]);
+		topology.faces[i]->random_sample_points(num_points, samples[i], coords[i], uv_box[i]);
 	}
 }
 
@@ -439,21 +439,21 @@ void PartSummary::init(BREPTopology& topology, MassProperties& mass_props, Eigen
 	surface_type_counts.resize(13);
 	surface_type_counts.setZero();
 	for (auto& face : topology.faces) {
-		int f_idx = static_cast<int>(face.function);
+		int f_idx = static_cast<int>(face->function);
 		surface_type_counts(f_idx) += 1;
 	}
 
 	curve_type_counts.resize(11);
 	curve_type_counts.setZero();
 	for (auto& edge : topology.edges) {
-		int f_idx = static_cast<int>(edge.function);
+		int f_idx = static_cast<int>(edge->function);
 		curve_type_counts(f_idx) += 1;
 	}
 
 	loop_type_counts.resize(10);
 	loop_type_counts.setZero();
 	for (auto& loop : topology.loops) {
-		int t_idx = static_cast<int>(loop._type);
+		int t_idx = static_cast<int>(loop->_type);
 		loop_type_counts(t_idx) += 1;
 	}
 

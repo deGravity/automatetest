@@ -3,7 +3,7 @@
 
 #include <parasolid.h>
 
-Vertex::Vertex(int id) {
+PSVertex::PSVertex(int id) {
     _id = id;
 
     PK_ERROR_t err = PK_ERROR_no_errors;
@@ -16,7 +16,7 @@ Vertex::Vertex(int id) {
     position = Eigen::Vector3d(point_sf.position.coord[0], point_sf.position.coord[1], point_sf.position.coord[2]);
 }
 
-std::vector<Inference> Vertex::get_inferences()
+std::vector<Inference> PSVertex::get_inferences()
 {
     std::vector<Inference> inferences;
 
