@@ -6,13 +6,12 @@
 #include <assert.h>
 #include <Eigen/Core>
 #include <vector>
+#include <TopoDS_Wire.hxx>
+#include <TopTools_ListOfShape.hxx>
 
 struct Loop {
-    Loop(int id);
+    virtual std::vector<Inference> get_inferences() = 0;
 
-    std::vector<Inference> get_inferences();
-
-    int _id;
     LoopType _type;
 
     bool _is_circle;
@@ -25,6 +24,23 @@ struct Loop {
     Eigen::Vector3d na_bb_x;
     Eigen::Vector3d na_bb_z;
     Eigen::MatrixXd na_bounding_box;
+};
+
+struct PSLoop: public Loop {
+    PSLoop(int id);
+
+    std::vector<Inference> get_inferences() override;
+
+    int _id;
+};
+
+struct OCCTLoop: public Loop {
+    OCCTLoop(const TopoDS_Shape& shape, const TopTools_ListOfShape& faces);
+
+    std::vector<Inference> get_inferences() override;
+
+    TopoDS_Wire _shape;
+    TopTools_ListOfShape _faces;
 };
 
 
