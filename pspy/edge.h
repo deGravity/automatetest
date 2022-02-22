@@ -19,7 +19,7 @@ struct Edge {
 
     Eigen::Vector3d start;
     Eigen::Vector3d end;
-    bool has_curve;
+    bool _has_curve;
     bool _is_reversed; // Is edge opposite curve? Already baked-in to start and
                        // end, but needed for tangent computation.
 

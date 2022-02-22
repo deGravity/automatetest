@@ -25,7 +25,7 @@ PSEdge::PSEdge(int id) {
     _is_reversed = false;
 
     if (curve != PK_ENTITY_null) {
-        has_curve = true;
+        _has_curve = true;
         if (sense) { // interval from start to end
             start = Eigen::Vector3d(ends[0].coord[0], ends[0].coord[1], ends[0].coord[2]);
             end = Eigen::Vector3d(ends[1].coord[0], ends[1].coord[1], ends[1].coord[2]);
@@ -57,7 +57,7 @@ PSEdge::PSEdge(int id) {
 
     }
     else {
-        has_curve = false;
+        _has_curve = false;
         start = Eigen::Vector3d(0, 0, 0);
         end = Eigen::Vector3d(0, 0, 0);
         t_start = 0;
@@ -74,7 +74,7 @@ PSEdge::PSEdge(int id) {
 
     init_nabb();
 
-    if (!has_curve) {
+    if (!_has_curve) {
         function = CurveFunction::NONE;
         return;
     }
@@ -187,7 +187,7 @@ void PSEdge::init_nabb() {
     // Get Non-Aligned Bounding Box
     // Axes are ordered so X is largest, Y is second largest, Z is smallest
 
-    if (!has_curve) {
+    if (!_has_curve) {
         na_bb_center.setZero();
         na_bb_x.setZero();
         na_bb_z.setZero();
@@ -328,7 +328,7 @@ void PSEdge::sample_points(const int num_points, const bool sample_tangents, std
     t_range(0) = t_start;
     t_range(1) = t_end;
 
-    if (!has_curve) { // No curve, return all 0s
+    if (!_has_curve) { // No curve, return all 0s
         samples.push_back(Eigen::VectorXd::Zero(num_points)); // x
         samples.push_back(Eigen::VectorXd::Zero(num_points)); // y
         samples.push_back(Eigen::VectorXd::Zero(num_points)); // z

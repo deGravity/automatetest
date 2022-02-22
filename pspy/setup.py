@@ -23,10 +23,10 @@ cpp_sources = [
     'disjointset.cpp', 
     'lsh.cpp',
     'body.cpp',
-    'edge.cpp',
-    'face.cpp',
-    'loop.cpp',
-    'vertex.cpp',
+    'psedge.cpp',
+    'psface.cpp',
+    'psloop.cpp',
+    'psvertex.cpp',
     'part.cpp'
 ]
 

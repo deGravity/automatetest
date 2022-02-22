@@ -83,8 +83,6 @@ struct PSFace: public Face {
 struct OCCTFace: public Face {
     OCCTFace(const TopoDS_Shape& shape);
 
-    std::vector<Inference> get_inferences() override;
-
     void init_parametric_function();
 
     void init_bb();
@@ -97,6 +95,13 @@ struct OCCTFace: public Face {
     void init_sphere();
     void init_torus();
     void init_surface_of_revolution();
+
+    std::vector<Inference> get_inferences() override;
+
+    void add_inferences_plane(std::vector<Inference>& inferences);
+    void add_inferences_cone(std::vector<Inference>& inferences);
+    void add_inferences_sphere(std::vector<Inference>& inferences);
+    void add_inferences_axial(std::vector<Inference>& inferences);
 
     TopoDS_Face _shape;
     BRepAdaptor_Surface _surf;

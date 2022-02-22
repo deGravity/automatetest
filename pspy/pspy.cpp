@@ -445,7 +445,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 			.def_readonly("t_end", &Edge::t_end)
 			.def_readonly("start", &Edge::start)
 			.def_readonly("end", &Edge::end)
-			.def_readonly("has_curve", &Edge::has_curve)
+			.def_readonly("has_curve", &Edge::_has_curve)
 			.def_readonly("_is_reversed", &Edge::_is_reversed)
 			.def_readonly("is_periodic", &Edge::is_periodic)
 			.def_readonly("mid_point", &Edge::mid_point)
