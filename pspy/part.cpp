@@ -302,7 +302,7 @@ void PartTopologyNodes::init(BREPTopology& topology)
 
 }
 
-PartFace::PartFace(std::unique_ptr<Face>& f, int i)
+PartFace::PartFace(std::shared_ptr<Face>& f, int i)
 {
 	index = i;
 	function = f->function;
@@ -327,7 +327,7 @@ PartFace::PartFace(std::unique_ptr<Face>& f, int i)
 
 }
 
-PartLoop::PartLoop(std::unique_ptr<Loop>& l, int i)
+PartLoop::PartLoop(std::shared_ptr<Loop>& l, int i)
 {
 	index = i;
 	type = l->_type;
@@ -348,7 +348,7 @@ PartLoop::PartLoop(std::unique_ptr<Loop>& l, int i)
 	}
 }
 
-PartEdge::PartEdge(std::unique_ptr<Edge>& e, int i)
+PartEdge::PartEdge(std::shared_ptr<Edge>& e, int i)
 {
 	index = i;
 	function = e->function;
@@ -378,7 +378,7 @@ PartEdge::PartEdge(std::unique_ptr<Edge>& e, int i)
 	}
 }
 
-PartVertex::PartVertex(std::unique_ptr<Vertex>& v, int i)
+PartVertex::PartVertex(std::shared_ptr<Vertex>& v, int i)
 {
 	index = i;
 	position = v->position;

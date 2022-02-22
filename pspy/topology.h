@@ -48,10 +48,10 @@ struct TopoRelation {
 struct BREPTopology {
 
     // Node Lists
-    std::vector<std::unique_ptr<Face>> faces;
-    std::vector<std::unique_ptr<Loop>> loops;
-    std::vector<std::unique_ptr<Edge>> edges;
-    std::vector<std::unique_ptr<Vertex>> vertices;
+    std::vector<std::shared_ptr<Face>> faces;
+    std::vector<std::shared_ptr<Loop>> loops;
+    std::vector<std::shared_ptr<Edge>> edges;
+    std::vector<std::shared_ptr<Vertex>> vertices;
 
     // Edge Lists
     std::vector<TopoRelation> face_to_loop;

@@ -69,6 +69,7 @@ elif platform == "darwin":
     ]
 elif platform == "win32" or platform == "cygwin":
     parasolid_library = 'pskernel_archive_win_x64'
+    opencascade_tkernel_library = 'TKernel'
     dn = dirname(realpath(__file__))
     eigen3 = join(dn, 'eigen3')
     parasolid = join(dn, 'parasolid')
@@ -82,7 +83,7 @@ elif platform == "win32" or platform == "cygwin":
             cpp_sources,
             include_dirs= [eigen3, parasolid, opencascade],
             library_dirs = [parasolid_lib_dir, opencascade_lib_dir],
-            libraries = [parasolid_library]
+            libraries = [parasolid_library, opencascade_tkernel_library]
         )
     ]
 
