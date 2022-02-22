@@ -25,9 +25,16 @@ enum class SurfaceFunction {
     BLENDSF,
     MESH,
     FSURF,
+    BEZIERSURFACE,
+    BSPLINESURFACE,
+    SURFACEOFEXTRUSION,
+    OFFSETSURFACE,
+    OTHERSURFACE,
+    SURFACEOFREVOLUTION,
     NONE // Faces sometimes have no surface
 };
 
+// TODO: clean up potential duplicates introduced by adding OCCT curve functions
 enum class CurveFunction {
     LINE,
     CIRCLE,
@@ -39,6 +46,12 @@ enum class CurveFunction {
     TRCURVE,
     CPCURVE,
     PLINE,
+    HYPERBOLA,
+    PARABOLA,
+    BEZIERCURVE,
+    BSPLINECURVE,
+    OFFSETCURVE,
+    OTHERCURVE,
     NONE // Edges sometimes have no curve
 };
 

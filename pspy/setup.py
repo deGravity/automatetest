@@ -27,6 +27,10 @@ cpp_sources = [
     'psface.cpp',
     'psloop.cpp',
     'psvertex.cpp',
+    'occtedge.cpp',
+    'occtface.cpp',
+    'occtloop.cpp',
+    'occtvertex.cpp',
     'part.cpp'
 ]
 
@@ -70,6 +74,11 @@ elif platform == "darwin":
 elif platform == "win32" or platform == "cygwin":
     parasolid_library = 'pskernel_archive_win_x64'
     opencascade_tkernel_library = 'TKernel'
+    opencascade_tkbrep_library = 'TKBRep'
+    opencascade_tkmath_library = 'TKMath'
+    opencascade_tkshhealing_library = 'TKShHealing'
+    opencascade_tktopalgo_library = 'TKTopAlgo'
+    opencascade_tkg3d_library = 'TKG3d'
     dn = dirname(realpath(__file__))
     eigen3 = join(dn, 'eigen3')
     parasolid = join(dn, 'parasolid')
@@ -83,7 +92,14 @@ elif platform == "win32" or platform == "cygwin":
             cpp_sources,
             include_dirs= [eigen3, parasolid, opencascade],
             library_dirs = [parasolid_lib_dir, opencascade_lib_dir],
-            libraries = [parasolid_library, opencascade_tkernel_library]
+            libraries = [
+                parasolid_library,
+                opencascade_tkernel_library,
+                opencascade_tkbrep_library,
+                opencascade_tkmath_library,
+                opencascade_tkshhealing_library,
+                opencascade_tktopalgo_library,
+                opencascade_tkg3d_library]
         )
     ]
 
