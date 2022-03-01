@@ -91,6 +91,7 @@ class PartFeatures:
         self.mesh_to_topology = True
 
         # Include Grid Samples
+        self.default_num_samples = 10
         self.samples = True # Overrides other options
         self.face_samples = True
         self.normals = True
@@ -391,15 +392,21 @@ def featurize_vert(v, options):
 
 
 def flatbatch(datalist):
-    batch = Batch.from_data_list(datalist)
+    follow_batch = []
+    if hasattr(datalist[0], 'mcfs'):
+        follow_batch .append('mcfs')
+    batch = Batch.from_data_list(datalist, follow_batch=follow_batch)
     data = HetData()
     for key in dir(batch):
-        if key != 'batch' and key != 'ptr':
+        if not key.endswith('batch') and key != 'ptr':
             val = getattr(batch, key)
             if isinstance(val, torch.Tensor):
                 setattr(data, key, val)
-    data.__num_nodes__ = batch.num_nodes
     data.__edge_sets__ = datalist[0].__edge_sets__
+    if hasattr(batch, 'mcfs_batch'):
+        data.mcf_to_graph_idx = batch.mcfs_batch.expand((1, batch.mcfs.shape[0]))
+        data.__edge_sets__['mcf_to_graph_idx'] = len(datalist)
+    data.__num_nodes__ = batch.num_nodes
     data.__node_sets__ = datalist[0].__node_sets__
     data.__edge_sets__['flat_topos_to_graph_idx'] = len(datalist)
     return data
@@ -563,7 +570,10 @@ def part_to_graph(part, options):
         if options.edge_samples:
             samples = part.samples.edge_samples
             if isinstance(samples, list):
-                samples = torchify(samples).float()
+                if samples:
+                    samples = torchify(samples).float()
+                else:
+                    samples = torch.empty((0, 7, options.default_num_samples))
             # Only use tangents if the part object has them
             has_tangents = (samples.size(1) == 7)
             if has_tangents and not options.tangents:
