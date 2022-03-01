@@ -5,6 +5,7 @@
 #include <Eigen/Core>
 #include <vector>
 #include <TopoDS_Edge.hxx>
+#include <TopoDS_Face.hxx>
 #include <TopTools_ListOfShape.hxx>
 #include <BRepAdaptor_Curve.hxx>
 
@@ -87,7 +88,7 @@ struct OCCTEdge: public Edge {
 
     TopoDS_Edge _shape;
     BRepAdaptor_Curve _curve;
-    TopTools_ListOfShape _faces;
+    std::vector<TopoDS_Face> _faces;
 
     void sample_points(
         const int num_points,

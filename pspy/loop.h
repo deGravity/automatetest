@@ -7,6 +7,7 @@
 #include <Eigen/Core>
 #include <vector>
 #include <TopoDS_Wire.hxx>
+#include <TopoDS_Face.hxx>
 #include <TopTools_ListOfShape.hxx>
 
 struct Loop {
@@ -40,7 +41,7 @@ struct OCCTLoop: public Loop {
     std::vector<Inference> get_inferences() override;
 
     TopoDS_Wire _shape;
-    TopTools_ListOfShape _faces;
+    std::vector<TopoDS_Face> _faces;
 };
 
 
