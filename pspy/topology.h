@@ -74,7 +74,8 @@ struct BREPTopology {
     std::map<int, std::vector<int> > loop_vertex;
     std::map<int, std::vector<int> > edge_vertex;
 
-
+    
+    // TODO: rename to remove Parasolid specificity
     // Parasolid Entity Id -> Topology Idx w/in typed list
     // (e.g. faces[5])
     std::map<int, int> pk_to_idx;
