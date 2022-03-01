@@ -2,6 +2,7 @@
 #define BODY_H_INCLUDED 1
 
 #include <parasolid.h>
+#include <TopoDS_Shape.hxx>
 #include "face.h"
 #include "loop.h"
 #include "edge.h"
@@ -15,8 +16,28 @@
 
 class Body {
 public:
-    Body(int id);
-    ~Body();
+    virtual BREPTopology GetTopology() = 0;
+
+    virtual MassProperties GetMassProperties(double accuracy = MASS_ACC) = 0;
+
+    virtual Eigen::MatrixXd GetBoundingBox() = 0;
+
+    virtual int Transform(const Eigen::MatrixXd& xfrm) = 0;
+
+    virtual void Tesselate(
+        Eigen::MatrixXd& V,
+        Eigen::MatrixXi& F,
+        Eigen::VectorXi& FtoT,
+        Eigen::MatrixXi& EtoT,
+        Eigen::VectorXi& VtoT) = 0;
+
+    virtual void debug() = 0;
+};
+
+class PSBody: public Body {
+public:
+    PSBody(int id);
+    ~PSBody();
 
     BREPTopology GetTopology();
 
@@ -40,8 +61,40 @@ private:
     bool _valid; // If we need to re-compute due to transforms
 };
 
+class OCCTBody: public Body {
+public:
+    OCCTBody(const TopoDS_Shape& shape);
+
+    BREPTopology GetTopology();
+
+    MassProperties GetMassProperties(double accuracy = MASS_ACC);
+
+    Eigen::MatrixXd GetBoundingBox();
+
+    int Transform(const Eigen::MatrixXd& xfrm);
+
+    void Tesselate(
+        Eigen::MatrixXd& V,
+        Eigen::MatrixXi& F,
+        Eigen::VectorXi& FtoT,
+        Eigen::MatrixXi& EtoT,
+        Eigen::VectorXi& VtoT);
+
+    void debug();
+
+private:
+    TopoDS_Shape _shape;
+    bool _valid; // If we need to re-compute due to transforms
+};
+
 // Helper Functions
-bool is_body(int id);
-std::vector<Body> read_xt(std::string path);
+std::vector<std::shared_ptr<Body>> read_file(std::string path);
+
+// PSBody Helper Functions
+bool is_psbody(int id);
+std::vector<std::shared_ptr<Body>> read_xt(std::string path);
+
+// OCCTBody Helper Functions
+std::vector<std::shared_ptr<Body>> read_step(std::string path);
 
 #endif // !BODY_H_INCLUDED

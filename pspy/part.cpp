@@ -6,15 +6,15 @@
 
 Part::Part(const std::string& path, PartOptions options)
 {
-	auto bodies = read_xt(path);
+	auto bodies = read_file(path);
 	if (bodies.size() != 1) {
 		_is_valid = false;
 		return;
 	}
 	_is_valid = true;
-	Body& body = bodies[0];
+	auto& body = bodies[0];
 
-	auto bounding_box = body.GetBoundingBox();
+	auto bounding_box = body->GetBoundingBox();
 
 	if (options.just_bb) {
 		summary.bounding_box = bounding_box;
@@ -35,19 +35,19 @@ Part::Part(const std::string& path, PartOptions options)
 			0, 0, 0, scale;
 	}
 	if (options.transform) {
-		int err = body.Transform(options.transform_matrix);
+		int err = body->Transform(options.transform_matrix);
 		if (err != 0) {
 			_is_valid = false;
 			return;
 		}
-		bounding_box = body.GetBoundingBox();
+		bounding_box = body->GetBoundingBox();
 	}
 
-	auto topology = body.GetTopology();
-	auto mass_properties = body.GetMassProperties();
+	auto topology = body->GetTopology();
+	auto mass_properties = body->GetMassProperties();
 	
 	if (options.tesselate) {
-		body.Tesselate(
+		body->Tesselate(
 			mesh.V,
 			mesh.F,
 			mesh_topology.face_to_topology,

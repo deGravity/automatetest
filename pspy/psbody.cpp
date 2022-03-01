@@ -4,14 +4,14 @@
 #include <map>
 #include <vector>
 
-bool is_body(int id) {
+bool is_psbody(int id) {
     PK_ERROR_t err = PK_ERROR_no_errors;
     PK_CLASS_t entity_class;
     err = PK_ENTITY_ask_class(id, &entity_class);
     return (err == 0) && (entity_class == PK_CLASS_body);
 }
 
-std::vector<Body> read_xt(std::string path) {
+std::vector<std::shared_ptr<Body>> read_xt(std::string path) {
     ensure_parasolid_session();
     PK_PART_receive_o_t receive_opts;
     PK_PART_receive_o_m(receive_opts);
@@ -20,11 +20,11 @@ std::vector<Body> read_xt(std::string path) {
     PK_PART_t* parts = NULL;
     PK_ERROR_t err = PK_ERROR_no_errors;
     err = PK_PART_receive(path.c_str(), &receive_opts, &n_parts, &parts);
-    std::vector<Body> parts_vec;
+    std::vector<std::shared_ptr<Body>> parts_vec;
     if (err == 0) {
         for (int i = 0; i < n_parts; ++i) {
-            if (is_body(parts[i])) {
-                parts_vec.emplace_back(parts[i]);
+            if (is_psbody(parts[i])) {
+                parts_vec.emplace_back(new PSBody(parts[i]));
             }
             else {
                 int num_deleted;
@@ -37,18 +37,18 @@ std::vector<Body> read_xt(std::string path) {
     return parts_vec;
 }
 
-Body::Body(int id) {
+PSBody::PSBody(int id) {
     _id = id;
     _valid = true;
 }
 
-Body::~Body() {
+PSBody::~PSBody() {
     int num_deleted;
     PK_ENTITY_delete_attribs(_id, PK_ENTITY_null, &num_deleted);
     PK_ENTITY_delete(1, &_id);
 }
 
-BREPTopology Body::GetTopology() {
+BREPTopology PSBody::GetTopology() {
     PK_ERROR_t err = PK_ERROR_no_errors;
     PK_BODY_ask_topology_o_t ask_topology_options;
     PK_BODY_ask_topology_o_m(ask_topology_options);
@@ -216,11 +216,11 @@ BREPTopology Body::GetTopology() {
     return topology;
 }
 
-MassProperties Body::GetMassProperties(double accuracy) {
+MassProperties PSBody::GetMassProperties(double accuracy) {
     return MassProperties(&_id, accuracy);
 }
 
-Eigen::MatrixXd Body::GetBoundingBox() {
+Eigen::MatrixXd PSBody::GetBoundingBox() {
     PK_ERROR_code_t err = PK_ERROR_no_errors;
     PK_BOX_t box;
     err = PK_TOPOL_find_box(_id, &box);
@@ -232,7 +232,7 @@ Eigen::MatrixXd Body::GetBoundingBox() {
     return corners;
 }
 
-int Body::Transform(const Eigen::MatrixXd& xfrm) {
+int PSBody::Transform(const Eigen::MatrixXd& xfrm) {
     // Apply Transform
     PK_BODY_transform_o_t transform_options;
     PK_BODY_transform_o_m(transform_options);
@@ -264,7 +264,7 @@ int Body::Transform(const Eigen::MatrixXd& xfrm) {
     return err;
 }
 
-void Body::Tesselate(
+void PSBody::Tesselate(
     Eigen::MatrixXd& V,
     Eigen::MatrixXi& F,
     Eigen::VectorXi& FtoT,
@@ -386,7 +386,7 @@ void Body::Tesselate(
     PK_TOPOL_facet_2_r_f(&facets);
 }
 
-void Body::debug() {
+void PSBody::debug() {
     PK_ERROR_t err = PK_ERROR_no_errors;
     PK_CLASS_t entity_class;
     err = PK_ENTITY_ask_class(_id, &entity_class);

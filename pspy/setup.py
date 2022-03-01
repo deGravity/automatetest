@@ -22,6 +22,7 @@ cpp_sources = [
     'eclass.cpp', 
     'disjointset.cpp', 
     'lsh.cpp',
+    'body.cpp',
     'psbody.cpp',
     'psedge.cpp',
     'psface.cpp',
