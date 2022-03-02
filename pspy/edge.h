@@ -88,7 +88,7 @@ struct OCCTEdge: public Edge {
 
     TopoDS_Edge _shape;
     BRepAdaptor_Curve _curve;
-    std::vector<TopoDS_Face> _faces;
+    TopTools_ListOfShape _faces;
 
     void sample_points(
         const int num_points,

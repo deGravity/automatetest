@@ -15,14 +15,13 @@ OCCTLoop::OCCTLoop(const TopoDS_Shape& shape, const TopTools_ListOfShape& faces)
     assert(shape.ShapeType() == TopAbs_WIRE);
     
     _shape = TopoDS::Wire(shape);
+    _faces = faces;
 
     // Set loop to be inner if it is not the outer loop of one of
     // its faces
     _type = LoopType::OUTER;
 
     for (auto iterator = faces.cbegin(); iterator != faces.cend(); iterator++) {
-        _faces.push_back(TopoDS::Face(*iterator));
-
         TopoDS_Face face_shape = TopoDS::Face(*iterator);
         TopoDS_Wire face_outer_wire = BRepTools::OuterWire(face_shape);
 
@@ -124,7 +123,8 @@ std::vector<Inference> OCCTLoop::get_inferences()
     // Only make inferences for inner loops
     if (_type == LoopType::INNER) {
         // Make inferences for plane for which loop is an inner loop
-        for (TopoDS_Face& face_shape : _faces) {
+        for (auto iterator = _faces.cbegin(); iterator != _faces.cend(); iterator++) {
+            TopoDS_Face face_shape = TopoDS::Face(*iterator);
             BRepAdaptor_Surface face_surf(face_shape);
             TopoDS_Wire face_outer_wire = BRepTools::OuterWire(face_shape);
 

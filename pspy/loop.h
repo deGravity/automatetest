@@ -41,7 +41,7 @@ struct OCCTLoop: public Loop {
     std::vector<Inference> get_inferences() override;
 
     TopoDS_Wire _shape;
-    std::vector<TopoDS_Face> _faces;
+    TopTools_ListOfShape _faces;
 };
 
 

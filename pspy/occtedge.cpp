@@ -16,10 +16,7 @@ OCCTEdge::OCCTEdge(const TopoDS_Shape& shape, const TopTools_ListOfShape& faces)
     assert(shape.ShapeType() == TopAbs_EDGE);
 
     _shape = TopoDS::Edge(shape);
-
-    for (auto iterator = faces.cbegin(); iterator != faces.cend(); iterator++) {
-        _faces.push_back(TopoDS::Face(*iterator));
-    }
+    _faces = faces;
 
     gp_Pnt first, last, mid;
     double t_first, t_last, t_mid;
@@ -264,7 +261,8 @@ void OCCTEdge::add_inferences_circle_or_ellipse(std::vector<Inference>& inferenc
         return (abs_diff < FLT_EPSILON);
     };
 
-    for (TopoDS_Face& face_shape : _faces) {
+    for (auto iterator = _faces.cbegin(); iterator != _faces.cend(); iterator++) {
+        TopoDS_Face face_shape = TopoDS::Face(*iterator);
         BRepAdaptor_Surface surf(face_shape);
         TopAbs_Orientation orientation = face_shape.Orientation();
         GeomAbs_SurfaceType face_class = surf.GetType();
