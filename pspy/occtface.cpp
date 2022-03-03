@@ -9,6 +9,11 @@
 #include <BRepGProp.hxx>
 #include <BRepTools.hxx>
 #include <GProp_GProps.hxx>
+#include <gp_Pln.hxx>
+#include <gp_Cylinder.hxx>
+#include <gp_Cone.hxx>
+#include <gp_Sphere.hxx>
+#include <gp_Torus.hxx>
 
 OCCTFace::OCCTFace(const TopoDS_Shape &shape) {
     assert(shape.ShapeType() == TopAbs_FACE);

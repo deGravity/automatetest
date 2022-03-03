@@ -11,6 +11,10 @@
 #include <BRepBndLib.hxx>
 #include <TopExp_Explorer.hxx>
 #include <BRepAdaptor_Surface.hxx>
+#include <gp_Pln.hxx>
+#include <gp_Circ.hxx>
+#include <gp_Lin.hxx>
+#include <gp_Elips.hxx>
 
 OCCTEdge::OCCTEdge(const TopoDS_Shape& shape, const TopTools_ListOfShape& faces) {
     assert(shape.ShapeType() == TopAbs_EDGE);

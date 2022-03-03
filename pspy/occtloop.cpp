@@ -9,6 +9,7 @@
 #include <Bnd_OBB.hxx>
 #include <BRepBndLib.hxx>
 #include <BRepAdaptor_Surface.hxx>
+#include <gp_Pln.hxx>
 
 OCCTLoop::OCCTLoop(const TopoDS_Shape& shape, const TopTools_ListOfShape& faces)
 {
