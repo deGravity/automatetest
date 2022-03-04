@@ -85,18 +85,19 @@ elif platform == "win32" or platform == "cygwin":
     opencascade_tktopalgo_library = 'TKTopAlgo'
     opencascade_tkshhealing_library = 'TKShHealing'
     dn = dirname(realpath(__file__))
-    eigen3 = join(dn, 'eigen3')
+    inc_dir = os.getenv('LIBRARY_INC')
+    lib_dir = os.getenv('LIBRARY_LIB')
+    eigen3 = join(inc_dir, 'eigen3')
     parasolid = join(dn, 'parasolid')
     parasolid_lib_dir = join(dn, 'parasolid', 'lib')
-    opencascade = join(dn, 'opencascade')
-    opencascade_lib_dir = join(dn, 'opencascade', 'win64', 'vc14', 'lib')
+    opencascade = join(inc_dir, 'opencascade')
     extract_library(parasolid_library, parasolid_lib_dir)
     ext_modules = [
         CppExtension(
             'pspy_cpp',
             cpp_sources,
             include_dirs= [eigen3, parasolid, opencascade],
-            library_dirs = [parasolid_lib_dir, opencascade_lib_dir],
+            library_dirs = [parasolid_lib_dir, lib_dir],
             libraries = [
                 parasolid_library,
                 opencascade_tkernel_library,

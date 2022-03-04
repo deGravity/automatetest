@@ -1,10 +1,12 @@
-#include <torch/extension.h>
+#include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
 #include <pybind11/stl.h>
 #include "eclass.h"
 #include "part.h"
 
-PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+namespace py = pybind11;
+
+PYBIND11_MODULE(pspy_cpp, m) {
 	// part.h
 
 	py::class_<PartOptions>(m, "PartOptions")
