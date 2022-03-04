@@ -282,7 +282,7 @@ void OCCTBody::Tesselate(
     Eigen::VectorXi& VtoT) {
     // Setup faceting call options
     // TODO: give control over linear deflection
-    double linear_deflection = 0.0001;
+    double linear_deflection = 0.1;
 
     // Facet the body
     BRepMesh_IncrementalMesh(_shape, linear_deflection);
