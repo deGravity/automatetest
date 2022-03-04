@@ -302,29 +302,31 @@ void OCCTBody::Tesselate(
             opencascade::handle<Poly_Triangulation> subface_triangulation =
                 BRep_Tool::Triangulation(subface, loc);
             
-            // Add new points
-            for (int i = 0; i < subface_triangulation->NbNodes(); ++i) {
-                gp_Pnt pnt = subface_triangulation->Node(i);
-                Eigen::Vector3d pnt_vec(pnt.X(), pnt.Y(), pnt.Z());
-                if (pnt_idxs.find(pnt_vec) == pnt_idxs.end()) {
-                    pnt_idxs[pnt_vec] = pnts.size();
-                    pnts.push_back(pnt_vec);
+            if (!subface_triangulation.IsNull()) {
+                // Add new points
+                for (int i = 1; i <= subface_triangulation->NbNodes(); ++i) {
+                    gp_Pnt pnt = subface_triangulation->Node(i);
+                    Eigen::Vector3d pnt_vec(pnt.X(), pnt.Y(), pnt.Z());
+                    if (pnt_idxs.find(pnt_vec) == pnt_idxs.end()) {
+                        pnt_idxs[pnt_vec] = pnts.size();
+                        pnts.push_back(pnt_vec);
+                    }
                 }
-            }
 
-            // Add new triangles
-            for (int i = 0; i < subface_triangulation->NbTriangles(); ++i) {
-                Poly_Triangle tri = subface_triangulation->Triangle(i);
-                gp_Pnt pnt1 = subface_triangulation->Node(tri.Value(1));
-                gp_Pnt pnt2 = subface_triangulation->Node(tri.Value(2));
-                gp_Pnt pnt3 = subface_triangulation->Node(tri.Value(3));
-                Eigen::Vector3d pnt1_vec(pnt1.X(), pnt1.Y(), pnt1.Z());
-                Eigen::Vector3d pnt2_vec(pnt2.X(), pnt2.Y(), pnt2.Z());
-                Eigen::Vector3d pnt3_vec(pnt3.X(), pnt3.Y(), pnt3.Z());
-                int pnt1_idx = pnt_idxs[pnt1_vec];
-                int pnt2_idx = pnt_idxs[pnt2_vec];
-                int pnt3_idx = pnt_idxs[pnt3_vec];
-                tris.emplace_back(pnt1_idx, pnt2_idx, pnt3_idx);
+                // Add new triangles
+                for (int i = 1; i <= subface_triangulation->NbTriangles(); ++i) {
+                    Poly_Triangle tri = subface_triangulation->Triangle(i);
+                    gp_Pnt pnt1 = subface_triangulation->Node(tri.Value(1));
+                    gp_Pnt pnt2 = subface_triangulation->Node(tri.Value(2));
+                    gp_Pnt pnt3 = subface_triangulation->Node(tri.Value(3));
+                    Eigen::Vector3d pnt1_vec(pnt1.X(), pnt1.Y(), pnt1.Z());
+                    Eigen::Vector3d pnt2_vec(pnt2.X(), pnt2.Y(), pnt2.Z());
+                    Eigen::Vector3d pnt3_vec(pnt3.X(), pnt3.Y(), pnt3.Z());
+                    int pnt1_idx = pnt_idxs[pnt1_vec];
+                    int pnt2_idx = pnt_idxs[pnt2_vec];
+                    int pnt3_idx = pnt_idxs[pnt3_vec];
+                    tris.emplace_back(pnt1_idx, pnt2_idx, pnt3_idx);
+                }
             }
         }
     }
