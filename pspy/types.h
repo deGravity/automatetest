@@ -128,4 +128,18 @@ struct Inference {
     bool flipped_in_onshape = false; // Onshape would flip our inference
 };
 
+template <typename T>
+struct TopoDS_Shape_Hash {
+    size_t operator()(const T& shape) const {
+        return shape.HashCode(INT_MAX);
+    }
+};
+
+template <typename T>
+struct TopoDS_Shape_Pred {
+    size_t operator()(const T& shape1, const T& shape2) const {
+        return shape1 == shape2;
+    }
+};
+
 #endif // !TYPES_H_INCLUDED

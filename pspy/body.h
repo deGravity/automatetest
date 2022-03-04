@@ -62,20 +62,6 @@ private:
     bool _valid; // If we need to re-compute due to transforms
 };
 
-template <>
-struct std::hash<TopoDS_Shape> {
-    size_t operator()(const TopoDS_Shape& shape) const {
-        return shape.HashCode(INT_MAX);
-    }
-};
-
-template <>
-struct std::equal_to<TopoDS_Shape> {
-    size_t operator()(const TopoDS_Shape& shape1, const TopoDS_Shape& shape2) const {
-        return shape1.IsEqual(shape2);
-    }
-};
-
 class OCCTBody: public Body {
 public:
     OCCTBody(const TopoDS_Shape& shape);
@@ -99,7 +85,11 @@ public:
 
 private:
     TopoDS_Shape _shape;
-    std::unordered_map<TopoDS_Shape, int> _shape_to_idx;
+    std::unordered_map<
+        TopoDS_Shape,
+        int,
+        TopoDS_Shape_Hash<TopoDS_Shape>,
+        TopoDS_Shape_Pred<TopoDS_Shape>> _shape_to_idx;
     bool _valid; // If we need to re-compute due to transforms
 };
 
