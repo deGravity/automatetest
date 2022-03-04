@@ -99,6 +99,7 @@ class SimplePartDataset(torch.utils.data.Dataset):
             edge_xyz = (edge_xyz - center_point) / scale
         data.edge_samples = edge_xyz
 
+        # TODO - forgot to normalize vertices!
         return data
 
 class UVPartDataset(PartDataset):

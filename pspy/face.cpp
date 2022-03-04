@@ -1,11 +1,9 @@
 #include "face.h"
-#include "face.h"
-#include "face.h"
-#include "face.h"
-#include "face.h"
-#include "face.h"
+#include "lsh.h"
+#include "neoflann.h"
 #include <parasolid.h>
 #include <assert.h>
+#include <algorithm>
 
 Face::Face(int id) {
     _id = id;
@@ -664,6 +662,164 @@ void Face::random_sample_points(
     for (int i = 0; i < num_points; ++i) {
         samples(i, 6) = (point_topos[i] == NULL) ? 0.0 : 1.0;
     }
+
+    delete[] point_topos;
+    delete[] uv_grid;
+}
+
+// Borrowed from libigl
+void all_pairs_distances(
+    const Eigen::MatrixXd& V,
+    const Eigen::MatrixXd& U,
+    Eigen::MatrixXd& D)
+{
+    // dimension should be the same
+    assert(V.cols() == U.cols());
+    // resize output
+    D.resize(V.rows(), U.rows());
+    for (int i = 0; i < V.rows(); i++)
+    {
+        for (int j = 0; j < U.rows(); j++)
+        {
+            D(i, j) = sqrt((V.row(i) - U.row(j)).squaredNorm());
+        }
+    }
+}
+
+void Face::sample_mask_sdf(
+    const int quality,
+    const int num_points,
+    Eigen::MatrixXd& out_coords,
+    Eigen::VectorXd& sdf,
+    Eigen::MatrixXd& uv_range
+)
+{
+    // Find UV bounding box
+    PK_ERROR_t err = PK_ERROR_no_errors;
+    PK_UVBOX_t uv_box;
+    err = PK_FACE_find_uvbox(_id, &uv_box);
+    //assert(err == PK_ERROR_no_errors || err == PK_ERROR_no_geometry); // Commented out because of error 900, we'll just return empty samples on an error
+    uv_range.resize(2, 2);
+    uv_range <<
+        uv_box.param[0], uv_box.param[1],
+        uv_box.param[2], uv_box.param[3];
+;
+    out_coords.resize(num_points, 2);
+    out_coords.setZero();
+    sdf.resize(num_points);
+    sdf.setZero();
+
+    Eigen::MatrixXd coords(quality, 2);
+    coords.setZero();
+
+    // Return Zeroed Samples if there is no surface
+    if (_surf == PK_ENTITY_null || err != PK_ERROR_no_errors) {
+        return;
+    }
+
+    // Randomly Choose sample points in [0,1]
+    coords = Eigen::MatrixXd::Random(quality, 2); // Random() is in [-1,1]
+    coords.array() *= 0.6; // Compress to [-0.6, .6]
+    coords.array() += 0.5; // Shift to [-0.1, 1.1]
+
+    // Get U and V sample points within the box by scaling
+    Eigen::ArrayXd u_samples = (1.0 - coords.col(0).array()) * uv_box.param[0] + coords.col(0).array() * uv_box.param[2];
+    Eigen::ArrayXd v_samples = (1.0 - coords.col(1).array()) * uv_box.param[1] + coords.col(1).array() * uv_box.param[3];
+
+    PK_TOPOL_t* point_topos = new PK_TOPOL_t[quality];
+    PK_FACE_contains_vectors_o_t contains_vectors_opt;
+    PK_FACE_contains_vectors_o_m(contains_vectors_opt);
+    contains_vectors_opt.is_on_surf = PK_LOGICAL_true;
+    PK_UV_t* uv_grid = new PK_UV_t[quality];
+    
+    for (int i = 0; i < quality; ++i) {
+        uv_grid[i].param[0] = u_samples[i];
+        uv_grid[i].param[1] = v_samples[i];
+    }
+    contains_vectors_opt.n_uvs = quality;
+    contains_vectors_opt.uvs = uv_grid;
+    err = PK_FACE_contains_vectors(_id, &contains_vectors_opt, point_topos);
+    assert(err == PK_ERROR_no_errors); // PK_FACE_contains_vectors
+    
+    Eigen::MatrixXd inside_points(quality, 2);
+    Eigen::MatrixXd outside_points(quality, 2);
+    //Eigen::VectorXd inside_idx(quality);
+    //Eigen::VectorXd outside_idx(quality);
+
+    std::vector<bool> is_inside(quality);
+
+    int inside_i = 0;
+    int outside_i = 0;
+    for (int i = 0; i < quality; ++i) {
+        if (point_topos[i] == NULL) { // Sample i is outside the face
+            //outside_idx(outside_i) = i;
+            outside_points.row(outside_i) = coords.row(i);
+            ++outside_i;
+            is_inside[i] = false;
+        }
+        else { // Sample i is inside the face
+            //inside_idx(inside_i) = i;
+            inside_points.row(inside_i) = coords.row(i);
+            ++inside_i;
+            is_inside[i] = true;
+        }
+    }
+
+    inside_points.conservativeResize(inside_i, Eigen::NoChange);
+    outside_points.conservativeResize(outside_i, Eigen::NoChange);
+    
+    using KDTree = nanoflann::KDTreeEigenMatrixAdaptor<Eigen::MatrixXd>;
+
+    KDTree insideKDTree(2, inside_points);
+    KDTree outsideKDTree(2, outside_points);
+    insideKDTree.index->buildIndex();
+    outsideKDTree.index->buildIndex();
+
+    /*
+    Eigen::MatrixXd distances;
+    all_pairs_distances(inside_points, outside_points, distances);
+    */
+
+    /*
+    Eigen::VectorXd outside_dists = distances.colwise().minCoeff();
+    Eigen::VectorXd inside_dists = distances.rowwise().minCoeff();
+    */
+
+    // Randomly Permute Points to Sample
+    std::vector<int> range(quality);
+    for (int i = 0; i < quality; ++i) {
+        range[i] = i;
+    }
+    std::random_shuffle(range.begin(), range.end());
+
+    for (int i = 0; i < num_points; ++i) {
+        int idx = range[i];
+        Eigen::Index closestIdx;
+        double closestDist;
+        double query_point[2];
+        query_point[0] = coords(idx, 0);
+        query_point[1] = coords(idx, 1);
+        if (is_inside[idx]) {
+            outsideKDTree.query(query_point, 1, &closestIdx, &closestDist);
+            closestDist = -sqrt(closestDist);
+        }
+        else {
+            insideKDTree.query(query_point, 1, &closestIdx, &closestDist);
+            closestDist = sqrt(closestDist);
+        }
+        sdf[i] = closestDist;
+        out_coords.row(i) = coords.row(idx);
+    }
+
+    /*
+    for (int i = 0; i < inside_i; ++i) {
+        sdf(inside_idx(i)) = -inside_dists(i);
+    }
+
+    for (int i = 0; i < outside_i; ++i) {
+        sdf(outside_idx(i)) = outside_dists(i);
+    }
+    */
 
     delete[] point_topos;
     delete[] uv_grid;

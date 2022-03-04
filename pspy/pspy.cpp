@@ -15,6 +15,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 		.def_readwrite("transform_matrix", &PartOptions::transform_matrix)
 		.def_readwrite("num_uv_samples", &PartOptions::num_uv_samples)
 		.def_readwrite("num_random_samples", &PartOptions::num_random_samples)
+		.def_readwrite("num_sdf_samples", &PartOptions::num_sdf_samples)
+		.def_readwrite("sdf_sample_quality", &PartOptions::sdf_sample_quality)
 		.def_readwrite("sample_normals", &PartOptions::num_uv_samples)
 		.def_readwrite("sample_tangents", &PartOptions::sample_tangents)
 		.def_readwrite("tesselate", &PartOptions::tesselate)
@@ -31,6 +33,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 		.def_readonly("brep", &Part::brep)
 		.def_readonly("samples", &Part::samples)
 		.def_readonly("random_samples", &Part::random_samples)
+		.def_readonly("mask_sdf", &Part::mask_sdf)
 		.def_readonly("summary", &Part::summary)
 		.def_readonly("inferences", &Part::inferences)
 		.def_readonly("default_mcfs", &Part::default_mcfs)
@@ -131,6 +134,11 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 		.def_readonly("samples", &PartRandomSamples::samples)
 		.def_readonly("coords", &PartRandomSamples::coords)
 		.def_readonly("uv_box", &PartRandomSamples::uv_box);
+
+	py::class_<PartMaskSDF>(m, "PartMaskSDF")
+		.def_readonly("coords", &PartMaskSDF::coords)
+		.def_readonly("sdf", &PartMaskSDF::sdf)
+		.def_readonly("uv_box", &PartMaskSDF::uv_box);
 
 	py::class_<PartSummary>(m, "PartSummary")
 		.def_readonly("bounding_box", &PartSummary::bounding_box)

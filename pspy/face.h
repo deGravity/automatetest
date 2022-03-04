@@ -60,6 +60,14 @@ struct Face {
         Eigen::MatrixXd& coords,
         Eigen::MatrixXd& uv_box);
 
+    void sample_mask_sdf(
+        const int quality,
+        const int num_points,
+        Eigen::MatrixXd& coords,
+        Eigen::VectorXd& sdf,
+        Eigen::MatrixXd& uv_box
+    );
+
 };
 
 

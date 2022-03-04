@@ -13,6 +13,8 @@ struct PartOptions {
 	Eigen::Matrix<double, 4, 4> transform_matrix;
 	int num_uv_samples = 10;
 	int num_random_samples = 0;
+	int num_sdf_samples = 0;
+	int sdf_sample_quality = 5000;
 	bool sample_normals = true;
 	bool sample_tangents = true;
 	bool tesselate = true;
@@ -152,6 +154,13 @@ struct PartRandomSamples {
 	std::vector<Eigen::MatrixXd> uv_box;
 };
 
+struct PartMaskSDF {
+	void init(BREPTopology& topology, PartOptions options);
+	std::vector<Eigen::MatrixXd> coords;
+	std::vector<Eigen::VectorXd> sdf;
+	std::vector<Eigen::MatrixXd> uv_box;
+};
+
 struct PartSummary {
 	void init(BREPTopology& topology, MassProperties& mass_props, Eigen::MatrixXd& bounding_box);
 	Eigen::MatrixXd bounding_box;
@@ -204,6 +213,7 @@ struct Part {
 	PartTopology brep;
 	PartSamples samples;
 	PartRandomSamples random_samples;
+	PartMaskSDF mask_sdf;
 	PartSummary summary;
 	PartUniqueInferences inferences;
 	std::vector<MCF> default_mcfs;
