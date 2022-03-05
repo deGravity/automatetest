@@ -1,5 +1,55 @@
 import torch
 from functools import reduce
+from pspy import ImplicitPart
+from automate import HetData
+import torch
+import numpy as np
+
+def implicit_part_to_data(part):
+    data = HetData()
+    data.bounding_box = torch.tensor(part.bounding_box).float()
+    data.face_surfaces = torch.nn.functional.one_hot(torch.tensor(part.face_surfaces, dtype=int),5).long()
+    data.face_surface_parameters = torch.tensor(part.face_surface_parameters).float()
+    data.face_surface_flipped = torch.tensor(part.face_surface_flipped).long()
+    data.loop_types = torch.nn.functional.one_hot(torch.tensor(part.loop_types, dtype=int),10).long()
+    data.loop_length = torch.tensor(part.loop_length).float()
+    data.edge_curves = torch.nn.functional.one_hot(torch.tensor(part.edge_curves, dtype=int),3).long()
+    data.edge_curve_parameters = torch.tensor(part.edge_curve_parameters).float()
+    data.edge_curve_flipped = torch.tensor(part.edge_curve_flipped).long()
+    data.edge_length = torch.tensor(part.edge_length).float()
+    data.vertex_positions = torch.tensor(part.vertex_positions).float()
+    data.face_to_face = torch.tensor(part.face_to_face).long()
+    data.face_to_loop = torch.tensor(part.face_to_loop).long()
+    data.loop_to_edge = torch.tensor(part.loop_to_edge).long()
+    data.edge_to_vertex = torch.tensor(part.edge_to_vertex).long()
+    data.loop_to_vertex = torch.tensor(part.loop_to_vertex).long()
+    # Unsure how to store ordered_loop_edge/flipped since variable length per loop
+    # Could do it with an extra indexing layer, but not important unless we need them
+    data.edge_to_vertex_is_start = torch.tensor(part.edge_to_vertex_is_start).long()
+    data.loop_to_edge_flipped = torch.tensor(part.loop_to_edge_flipped).long()
+    data.surface_bounds = torch.tensor(np.stack(part.surface_bounds)).float()
+    data.surface_coords = torch.tensor(np.stack(part.surface_coords)).float()
+    data.surface_samples = torch.tensor(np.stack(part.surface_samples)).float()
+    data.curve_bounds = torch.tensor(np.stack(part.curve_bounds)).float()
+    data.curve_samples = torch.tensor(np.stack(part.curve_samples)).float()
+
+    data.__edge_sets__ = {
+        'face_to_face':['face_surfaces', 'face_surfaces', 'edge_curves'],
+        'face_to_loop':['face_surfaces', 'loop_types'],
+        'loop_to_edge':['loop_types', 'edge_curves'],
+        'edge_to_vertex':['edge_curves', 'vertex_positions'],
+        'loop_to_vertex':['loop_types', 'vertex_positions']
+    }
+    data.__node_sets__ = {
+        'bounding_box', 'face_surfaces', 'face_surface_parameters', 'face_surface_flipped',
+        'loop_types', 'loop_length', 'edge_curves', 'edge_curve_parameters',
+        'edge_curve_flipped', 'edge_length', 'edge_curves', 'edge_curve_parameters',
+        'edge_curve_flipped', 'edge_length', 'vertex_positions', 'edge_to_vertex_is_start',
+        'loop_to_edge_flipped', 'surface_bounds', 'surface_coords', 'surface_samples',
+        'curve_bounds', 'curve_samples'
+    }
+
+    return data
 
 class EuclideanMap(torch.nn.Module):
     def __init__(self,
