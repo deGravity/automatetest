@@ -5,7 +5,7 @@
 #include <map>
 #include <part.h>
 
-#include "neoflann.h"
+#include <implicit_part.h>
 
 
 int main(int argc, char** argv) {
@@ -25,23 +25,7 @@ int main(int argc, char** argv) {
 
     // Simple Test of KD-Tree
 
-    Eigen::MatrixXd points(4, 2);
-    points <<
-        0, 0,
-        1, 0,
-        1, 1,
-        0, 1;
-
-    nanoflann::KDTreeEigenMatrixAdaptor<Eigen::MatrixXd> kdtree(2, points, 10);
-    kdtree.index->buildIndex();
-    double query_point[2];
-    query_point[0] = 0.1;
-    query_point[1] = 0.0;
-    Eigen::Index out_index;
-    double distance;
-    kdtree.query(query_point, 1, &out_index, &distance);
-
-    std::cout << distance;
+    auto ipart = ImplicitPart(TEST_PART, 500, 5000, true);
 
     return 0;
 }

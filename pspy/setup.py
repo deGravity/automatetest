@@ -27,7 +27,8 @@ cpp_sources = [
     'face.cpp',
     'loop.cpp',
     'vertex.cpp',
-    'part.cpp'
+    'part.cpp',
+    'implicit_part.cpp'
 ]
 
 if platform == "linux" or platform == "linux2":

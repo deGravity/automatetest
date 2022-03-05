@@ -249,18 +249,18 @@ void PartTopologyRelations::init(BREPTopology& topology)
 		loop_to_edge(1, i) = topology.loop_to_edge[i]._child;
 	}
 
-edge_to_vertex.resize(2, topology.edge_to_vertex.size());
-for (int i = 0; i < topology.edge_to_vertex.size(); ++i) {
-	edge_to_vertex(0, i) = topology.edge_to_vertex[i]._parent;
-	edge_to_vertex(1, i) = topology.edge_to_vertex[i]._child;
-}
+	edge_to_vertex.resize(2, topology.edge_to_vertex.size());
+	for (int i = 0; i < topology.edge_to_vertex.size(); ++i) {
+		edge_to_vertex(0, i) = topology.edge_to_vertex[i]._parent;
+		edge_to_vertex(1, i) = topology.edge_to_vertex[i]._child;
+	}
 
-face_to_face.resize(3, topology.face_to_face.size());
-for (int i = 0; i < topology.face_to_face.size(); ++i) {
-	face_to_face(0, i) = std::get<0>(topology.face_to_face[i]);
-	face_to_face(1, i) = std::get<1>(topology.face_to_face[i]);
-	face_to_face(2, i) = std::get<2>(topology.face_to_face[i]);
-}
+	face_to_face.resize(3, topology.face_to_face.size());
+	for (int i = 0; i < topology.face_to_face.size(); ++i) {
+		face_to_face(0, i) = std::get<0>(topology.face_to_face[i]);
+		face_to_face(1, i) = std::get<1>(topology.face_to_face[i]);
+		face_to_face(2, i) = std::get<2>(topology.face_to_face[i]);
+	}
 }
 
 void PartTopologyNodes::init(BREPTopology& topology)

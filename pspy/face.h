@@ -68,6 +68,14 @@ struct Face {
         Eigen::MatrixXd& uv_box
     );
 
+    bool sample_surface(
+        const int N_ref_samples,
+        const int N_uv_samples, // N
+        Eigen::MatrixXd& uv_bounds,
+        Eigen::MatrixXd& uv_coords, // (Nx2) Sampled Coords normalized to [0,1]
+        Eigen::MatrixXd& uv_samples // (Nx7) x,y,z,n_x,n_y,n_z,m
+    );
+
 };
 
 

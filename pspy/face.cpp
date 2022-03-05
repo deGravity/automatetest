@@ -824,3 +824,166 @@ void Face::sample_mask_sdf(
     delete[] point_topos;
     delete[] uv_grid;
 }
+
+bool Face::sample_surface(
+    const int N_ref_samples, 
+    const int N_uv_samples,
+    Eigen::MatrixXd& uv_bounds, 
+    Eigen::MatrixXd& uv_coords, 
+    Eigen::MatrixXd& uv_samples
+)
+{
+    // Find UV bounding box
+    PK_ERROR_t err = PK_ERROR_no_errors;
+    PK_UVBOX_t uv_box;
+    err = PK_FACE_find_uvbox(_id, &uv_box);
+    //assert(err == PK_ERROR_no_errors || err == PK_ERROR_no_geometry); // Commented out because of error 900, we'll just return empty samples on an error
+    uv_bounds.resize(2, 2);
+    uv_bounds <<
+        uv_box.param[0], uv_box.param[1],
+        uv_box.param[2], uv_box.param[3];
+    ;
+
+    if (_surf == PK_ENTITY_null || err != PK_ERROR_no_errors) {
+        return false;
+    }
+
+    // Randomly Choose referenc sample points in [0,1]
+    Eigen::MatrixXd ref_coords = Eigen::MatrixXd::Random(N_ref_samples, 2); // in [-1,1]
+    ref_coords.array() *= 0.6; // Compress to [-0.6, .6]
+    ref_coords.array() += 0.5; // Shift to [-0.1, 1.1]
+
+    // Get U and V sample points within the box by scaling
+    Eigen::ArrayXd u_samples = (1.0 - ref_coords.col(0).array()) * uv_box.param[0] + ref_coords.col(0).array() * uv_box.param[2];
+    Eigen::ArrayXd v_samples = (1.0 - ref_coords.col(1).array()) * uv_box.param[1] + ref_coords.col(1).array() * uv_box.param[3];
+
+    
+
+    // Check if reference samples are inside or outside of the face
+    // and evaluate x,y,z position and normals
+    
+    // TODO - test if switching order for cache-coherency is faster
+    // We won't get to do this (probably?) for the KD-tree since it
+    // treats rows as the points. We could also just switch these
+    // to be Row-Major, but then we could run into trouble with pybind11
+    Eigen::MatrixXd ref_positions(N_ref_samples, 3);
+    Eigen::MatrixXd ref_normals(N_ref_samples, 3);
+    std::vector<bool> is_inside(N_ref_samples);
+    
+    PK_TOPOL_t* point_topos = new PK_TOPOL_t[N_ref_samples];
+    PK_FACE_contains_vectors_o_t contains_vectors_opt;
+    PK_FACE_contains_vectors_o_m(contains_vectors_opt);
+    contains_vectors_opt.is_on_surf = PK_LOGICAL_true;
+    PK_UV_t* uv_grid = new PK_UV_t[N_ref_samples];
+
+    
+    for (int i = 0; i < N_ref_samples; ++i) {
+        uv_grid[i].param[0] = u_samples[i];
+        uv_grid[i].param[1] = v_samples[i];
+    }
+    contains_vectors_opt.n_uvs = N_ref_samples;
+    contains_vectors_opt.uvs = uv_grid;
+    err = PK_FACE_contains_vectors(_id, &contains_vectors_opt, point_topos);
+    assert(err == PK_ERROR_no_errors); // PK_FACE_contains_vectors
+
+
+    Eigen::MatrixXd inside_ref_samples(N_ref_samples, 2);
+    Eigen::MatrixXd outside_ref_samples(N_ref_samples, 2);
+    
+
+    int inside_i = 0;
+    int outside_i = 0;
+    for (int i = 0; i < N_ref_samples; ++i) {
+        if (point_topos[i] == NULL) { // reference sample i is outside the face
+            outside_ref_samples.row(outside_i) = ref_coords.row(i);
+            ++outside_i;
+            is_inside[i] = false;
+        }
+        else { // referenc sample i is inside the face
+            inside_ref_samples.row(inside_i) = ref_coords.row(i);
+            ++inside_i;
+            is_inside[i] = true;
+        }
+    }
+
+    inside_ref_samples.conservativeResize(inside_i, Eigen::NoChange);
+    outside_ref_samples.conservativeResize(outside_i, Eigen::NoChange);
+
+    using KDTree = nanoflann::KDTreeEigenMatrixAdaptor<Eigen::MatrixXd>;
+
+    KDTree insideKDTree(2, inside_ref_samples);
+    KDTree outsideKDTree(2, outside_ref_samples);
+    insideKDTree.index->buildIndex();
+    outsideKDTree.index->buildIndex();
+
+    // Randomly Permute Points to Sample
+    std::vector<int> range(N_ref_samples);
+    for (int i = 0; i < N_ref_samples; ++i) {
+        range[i] = i;
+    }
+    std::random_shuffle(range.begin(), range.end());
+
+    // Generate Final Sample
+    uv_coords.resize(N_uv_samples, 2);
+    uv_samples.resize(N_uv_samples, 7);
+
+    PK_VECTOR_t point, normal;
+    PK_UV_t sample_uv;
+    for (int i = 0; i < N_uv_samples; ++i) {
+        int idx = range[i];
+        Eigen::Index closestIdx;
+        double closestDist;
+        double query_point[2];
+        // Can't just point into the data array since it is col major
+        query_point[0] = ref_coords(idx, 0);
+        query_point[1] = ref_coords(idx, 1);
+        if (is_inside[idx]) {
+            outsideKDTree.query(query_point, 1, &closestIdx, &closestDist);
+            closestDist = -sqrt(closestDist);
+        }
+        else {
+            insideKDTree.query(query_point, 1, &closestIdx, &closestDist);
+            closestDist = sqrt(closestDist);
+        }
+
+        uv_coords.row(i) = ref_coords.row(idx);
+
+        sample_uv.param[0] = u_samples(idx);
+        sample_uv.param[1] = v_samples(idx);
+        // Eval position and normal
+        err = PK_SURF_eval_with_normal(
+            _surf,
+            sample_uv,
+            0, // no u derivatives
+            0, // no v derivatives
+            PK_LOGICAL_false, // no triangular derivative array
+            &point,
+            &normal
+        );
+
+        if (err == PK_ERROR_at_singularity) {
+            // Use 0 norm for singularities
+            normal.coord[0] = 0;
+            normal.coord[1] = 0;
+            normal.coord[2] = 0;
+        }
+        else if (err != PK_ERROR_no_errors) {
+            return false; // Break if other error in evaluation
+        }
+        for (int j = 0; j < 3; ++j) {
+            ref_positions(i, j) = point.coord[j];
+            ref_normals(i, j) = normal.coord[j];
+        }
+
+        for (int j = 0; j < 3; ++j) {
+            uv_samples(i, j) = point.coord[j];
+            uv_samples(i, j + 3) = normal.coord[j];
+        }
+        uv_samples(i, 6) = closestDist;
+    }
+
+    delete[] point_topos;
+    delete[] uv_grid;
+
+    return true;
+}
