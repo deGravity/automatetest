@@ -16,6 +16,7 @@ Once you have all of the necessary files in place, pspy can
 be installed with
 
 `conda-build ci/conda`
+
 `conda install --use-local pspy`
 
 in this directory.
