@@ -4,6 +4,7 @@
 #include <Eigen/Core>
 #include <assert.h>
 #include <parasolid.h>
+#include <gp_Pnt.hxx>
 
 enum class TopologyType {
     FACE,
@@ -139,6 +140,27 @@ template <typename T>
 struct TopoDS_Shape_Pred {
     size_t operator()(const T& shape1, const T& shape2) const {
         return shape1 == shape2;
+    }
+};
+
+// From https://wjngkoh.wordpress.com/2015/03/04/c-hash-function-for-eigen-matrix-and-vector/
+struct gp_Pnt_Hash {
+    size_t operator()(const gp_Pnt& pnt) const {
+        size_t seed = 0;
+        for (size_t i = 1; i <= 3; ++i) {
+            double elem = pnt.Coord(i);
+            seed ^= std::hash<double>()(elem) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        }
+        return seed;
+    }
+};
+
+struct gp_Pnt_Pred {
+    size_t operator()(const gp_Pnt& pnt1, const gp_Pnt& pnt2) const {
+        return
+            pnt1.X() == pnt2.X() &&
+            pnt1.Y() == pnt2.Y() &&
+            pnt1.Z() == pnt2.Z();
     }
 };
 

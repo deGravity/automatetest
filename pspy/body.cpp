@@ -1,7 +1,6 @@
 #include "body.h"
 
 #include <vector>
-#include <Interface_Static.hxx>
 
 static std::string get_extension(std::string path) {
 	size_t idx = path.find_last_of('.');
@@ -17,7 +16,6 @@ std::vector<std::shared_ptr<Body>> read_file(std::string path) {
         return read_xt(path);
     }
     else if (ext == "step" || ext == "stp") {
-        Interface_Static::SetCVal("xstep.cascade.unit", "M");
         return read_step(path);
     }
     else {

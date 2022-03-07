@@ -18,31 +18,13 @@
 #include <TopoDS.hxx>
 #include <TopLoc_Location.hxx>
 #include <gp_Pnt.hxx>
-
-// TODO: replace?
-// From https://wjngkoh.wordpress.com/2015/03/04/c-hash-function-for-eigen-matrix-and-vector/
-// Hash function for Eigen matrix and vector.
-// The code is from `hash_combine` function of the Boost library. See
-// http://www.boost.org/doc/libs/1_55_0/doc/html/hash/reference.html#boost.hash_combine.
-template<typename T>
-struct matrix_hash: std::unary_function<T, size_t> {
-  std::size_t operator()(T const& matrix) const {
-    // Note that it is oblivious to the storage order of Eigen matrix (column- or
-    // row-major). It will give you the same hash value for two different matrices if they
-    // are the transpose of each other in different storage order.
-    size_t seed = 0;
-    for (size_t i = 0; i < matrix.size(); ++i) {
-      auto elem = *(matrix.data() + i);
-      seed ^= std::hash<typename T::Scalar>()(elem) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-    }
-    return seed;
-  }
-};
+#include <Interface_Static.hxx>
 
 std::vector<std::shared_ptr<Body>> read_step(std::string path) {
     std::vector<std::shared_ptr<Body>> parts_vec;
 
 	STEPControl_Reader reader;
+    Interface_Static::SetCVal("xstep.cascade.unit", "M");
 	IFSelect_ReturnStatus ret = reader.ReadFile(path.c_str());
 
     if (ret == IFSelect_RetDone) {
@@ -288,8 +270,8 @@ void OCCTBody::Tesselate(
     BRepMesh_IncrementalMesh(_shape, linear_deflection);
 
     // Gather vertices and triangles from faces of _shape
-    std::unordered_map<Eigen::Vector3d, int, matrix_hash<Eigen::Vector3d>> pnt_idxs;
-    std::vector<Eigen::Vector3d> pnts;
+    std::unordered_map<gp_Pnt, int, gp_Pnt_Hash, gp_Pnt_Pred> pnt_idxs;
+    std::vector<gp_Pnt> pnts;
     std::vector<Eigen::Vector3i> tris;
 
     TopLoc_Location loc;
@@ -306,10 +288,9 @@ void OCCTBody::Tesselate(
                 // Add new points
                 for (int i = 1; i <= subface_triangulation->NbNodes(); ++i) {
                     gp_Pnt pnt = subface_triangulation->Node(i);
-                    Eigen::Vector3d pnt_vec(pnt.X(), pnt.Y(), pnt.Z());
-                    if (pnt_idxs.find(pnt_vec) == pnt_idxs.end()) {
-                        pnt_idxs[pnt_vec] = pnts.size();
-                        pnts.push_back(pnt_vec);
+                    if (pnt_idxs.find(pnt) == pnt_idxs.end()) {
+                        pnt_idxs[pnt] = pnts.size();
+                        pnts.push_back(pnt);
                     }
                 }
 
@@ -319,12 +300,9 @@ void OCCTBody::Tesselate(
                     gp_Pnt pnt1 = subface_triangulation->Node(tri.Value(1));
                     gp_Pnt pnt2 = subface_triangulation->Node(tri.Value(2));
                     gp_Pnt pnt3 = subface_triangulation->Node(tri.Value(3));
-                    Eigen::Vector3d pnt1_vec(pnt1.X(), pnt1.Y(), pnt1.Z());
-                    Eigen::Vector3d pnt2_vec(pnt2.X(), pnt2.Y(), pnt2.Z());
-                    Eigen::Vector3d pnt3_vec(pnt3.X(), pnt3.Y(), pnt3.Z());
-                    int pnt1_idx = pnt_idxs[pnt1_vec];
-                    int pnt2_idx = pnt_idxs[pnt2_vec];
-                    int pnt3_idx = pnt_idxs[pnt3_vec];
+                    int pnt1_idx = pnt_idxs[pnt1];
+                    int pnt2_idx = pnt_idxs[pnt2];
+                    int pnt3_idx = pnt_idxs[pnt3];
                     tris.emplace_back(pnt1_idx, pnt2_idx, pnt3_idx);
                 }
             }
@@ -334,10 +312,10 @@ void OCCTBody::Tesselate(
     // Populate Mesh Vertices
     V.resize(pnts.size(), 3);
     for (int i = 0; i < pnts.size(); ++i) {
-        auto vec = pnts[i];
-        V(i, 0) = vec(0);
-        V(i, 1) = vec(1);
-        V(i, 2) = vec(2);
+        auto pnt = pnts[i];
+        V(i, 0) = pnt.X();
+        V(i, 1) = pnt.Y();
+        V(i, 2) = pnt.Z();
     }
 
     // Populate Mesh Faces
