@@ -10,21 +10,21 @@ To run this, you must have a copy of Parasolid! Look at the
 information on how to add your Parasolid distribution files
 to this repository in order to build pspy.
 
-This package also depends on pytorch to be installed.
+conda-build is also required to build the module.
 
 Once you have all of the necessary files in place, pspy can
-be installed with either
+be installed with
 
-`python setup.py install`
+`conda-build ci/conda`
+`conda install --use-local pspy`
 
-or
+in this directory.
 
-`pip install .`
+If a different version of occt is already installed,
 
-in this directory. Getting the compilation and linking working
-across multiple platforms has been tricky - if you find that 
-one of those commands does not work on your system, the other
-may.
+`conda install --use-local --update-deps pspy`
+
+may be required to avoid linking errors at runtime.
 
 ## Using pspy
 

@@ -38,30 +38,82 @@ cpp_sources = [
 
 if platform == "linux" or platform == "linux2":
     parasolid_library = 'pskernel_archive_linux_x64'
+    opencascade_tkernel_library = 'TKernel'
+    opencascade_tkxsbase_library = 'TKXSBase'
+    opencascade_tkstep_library = 'TKSTEP'
+    opencascade_tkbrep_library = 'TKBRep'
+    opencascade_tkg3d_library = 'TKG3d'
+    opencascade_tkmath_library = 'TKMath'
+    opencascade_tkmesh_library = 'TKMesh'
+    opencascade_tktopalgo_library = 'TKTopAlgo'
+    opencascade_tkshhealing_library = 'TKShHealing'
     dn = dirname(realpath(__file__))
-    eigen3 = join(dn, 'eigen3')
+    inc_dir = os.getenv('LIBRARY_INC')
+    lib_dir = os.getenv('LIBRARY_LIB')
+    eigen3 = join(inc_dir, 'eigen3')
     parasolid = join(dn, 'parasolid')
     parasolid_lib_dir = join(dn, 'parasolid', 'lib')
     parasolid_lib_file = join(parasolid_lib_dir, f'{parasolid_library}.lib')
+    opencascade = join(inc_dir, 'opencascade')
+    opencascade_tkernel_lib_file = join(lib_dir, f'{opencascade_tkernel_library}.lib')
+    opencascade_tkxsbase_lib_file = join(lib_dir, f'{opencascade_tkxsbase_library}.lib')
+    opencascade_tkstep_lib_file = join(lib_dir, f'{opencascade_tkstep_library}.lib')
+    opencascade_tkbrep_lib_file = join(lib_dir, f'{opencascade_tkbrep_library}.lib')
+    opencascade_tkg3d_lib_file = join(lib_dir, f'{opencascade_tkg3d_library}.lib')
+    opencascade_tkmath_lib_file = join(lib_dir, f'{opencascade_tkmath_library}.lib')
+    opencascade_tkmesh_lib_file = join(lib_dir, f'{opencascade_tkmesh_library}.lib')
+    opencascade_tktopalgo_lib_file = join(lib_dir, f'{opencascade_tktopalgo_library}.lib')
+    opencascade_tkshhealing_lib_file = join(lib_dir, f'{opencascade_tkshhealing_library}.lib')
     extract_library(parasolid_library, parasolid_lib_dir)
     #extract_library('pskernel_archive_linux_x64', 'parasolid/lib')
     ext_modules = [
         CppExtension(
             'pspy_cpp',
             cpp_sources,
-            include_dirs= [eigen3, parasolid],
-            extra_objects = [parasolid_lib_file]
+            include_dirs= [eigen3, parasolid, opencascade],
+            extra_objects = [
+                parasolid_lib_file,
+                opencascade_tkernel_lib_file,
+                opencascade_tkbrep_lib_file,
+                opencascade_tkmath_lib_file,
+                opencascade_tkshhealing_lib_file,
+                opencascade_tktopalgo_lib_file,
+                opencascade_tkg3d_lib_file,
+                opencascade_tkstep_lib_file,
+                opencascade_tkmesh_lib_file,
+                opencascade_tkxsbase_lib_file]
         )
     ]
 elif platform == "darwin":
     # This is probably computer dependent
     os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.15"
     parasolid_library = 'pskernel_archive_intel_macos'
+    opencascade_tkernel_library = 'TKernel'
+    opencascade_tkxsbase_library = 'TKXSBase'
+    opencascade_tkstep_library = 'TKSTEP'
+    opencascade_tkbrep_library = 'TKBRep'
+    opencascade_tkg3d_library = 'TKG3d'
+    opencascade_tkmath_library = 'TKMath'
+    opencascade_tkmesh_library = 'TKMesh'
+    opencascade_tktopalgo_library = 'TKTopAlgo'
+    opencascade_tkshhealing_library = 'TKShHealing'
     dn = dirname(realpath(__file__))
-    eigen3 = join(dn, 'eigen3')
+    inc_dir = os.getenv('LIBRARY_INC')
+    lib_dir = os.getenv('LIBRARY_LIB')
+    eigen3 = join(inc_dir, 'eigen3')
     parasolid = join(dn, 'parasolid')
     parasolid_lib_dir = join(dn, 'parasolid', 'lib')
     parasolid_lib_file = join(parasolid_lib_dir, f'{parasolid_library}.lib')
+    opencascade = join(inc_dir, 'opencascade')
+    opencascade_tkernel_lib_file = join(lib_dir, f'{opencascade_tkernel_library}.lib')
+    opencascade_tkxsbase_lib_file = join(lib_dir, f'{opencascade_tkxsbase_library}.lib')
+    opencascade_tkstep_lib_file = join(lib_dir, f'{opencascade_tkstep_library}.lib')
+    opencascade_tkbrep_lib_file = join(lib_dir, f'{opencascade_tkbrep_library}.lib')
+    opencascade_tkg3d_lib_file = join(lib_dir, f'{opencascade_tkg3d_library}.lib')
+    opencascade_tkmath_lib_file = join(lib_dir, f'{opencascade_tkmath_library}.lib')
+    opencascade_tkmesh_lib_file = join(lib_dir, f'{opencascade_tkmesh_library}.lib')
+    opencascade_tktopalgo_lib_file = join(lib_dir, f'{opencascade_tktopalgo_library}.lib')
+    opencascade_tkshhealing_lib_file = join(lib_dir, f'{opencascade_tkshhealing_library}.lib')
     extract_library(parasolid_library, parasolid_lib_dir)
     #extract_library('pskernel_archive_linux_x64', 'parasolid/lib')
     ext_modules = [
@@ -69,8 +121,18 @@ elif platform == "darwin":
             # no dot as the relative import gets confused
             'pspy_cpp',
             cpp_sources,
-            include_dirs= [eigen3, parasolid],
-            extra_objects = [parasolid_lib_file]
+            include_dirs= [eigen3, parasolid, opencascade],
+            extra_objects = [
+                parasolid_lib_file,
+                opencascade_tkernel_lib_file,
+                opencascade_tkbrep_lib_file,
+                opencascade_tkmath_lib_file,
+                opencascade_tkshhealing_lib_file,
+                opencascade_tktopalgo_lib_file,
+                opencascade_tkg3d_lib_file,
+                opencascade_tkstep_lib_file,
+                opencascade_tkmesh_lib_file,
+                opencascade_tkxsbase_lib_file]
         )
     ]
 elif platform == "win32" or platform == "cygwin":
