@@ -46,7 +46,7 @@ OCCTBody::OCCTBody(const TopoDS_Shape& shape) {
     TopTools_IndexedMapOfShape shape_map;
     TopExp::MapShapes(_shape, shape_map);
 
-    int i = 0;
+    int i = 1;
     for (auto iterator = shape_map.cbegin(); iterator != shape_map.cend(); iterator++) {
         TopoDS_Shape subshape = *iterator;
         _shape_to_idx[subshape] = i;
@@ -140,7 +140,6 @@ BREPTopology OCCTBody::GetTopology() {
                 TopoDS_Shape subsubshape = *iterator;
                 child = topology.pk_to_idx[_shape_to_idx[subsubshape]];
 
-                // TODO: confirm this setting of sense matches relationship
                 PK_TOPOL_sense_t sense =
                     subsubshape.Orientation() == TopAbs_FORWARD ? PK_TOPOL_sense_positive_c :
                     subsubshape.Orientation() == TopAbs_REVERSED ? PK_TOPOL_sense_negative_c :
@@ -295,15 +294,20 @@ void OCCTBody::Tesselate(
     std::unordered_map<gp_Pnt, int, gp_Pnt_Hash, gp_Pnt_Pred> pnt_idxs;
     std::vector<gp_Pnt> pnts;
     std::vector<Eigen::Vector3i> tris;
+    std::vector<int> tri_face;
+    std::map<std::pair<int, int>, int> fin_edge;
+    std::map<int, int> pnt_vertex;
 
     TopLoc_Location loc;
 
+    // Fill pnt_idxs, pnts, tris, tri_face, and fin_edge
     for (const auto& subshape_idx_pair : _shape_to_idx) {
         TopoDS_Shape subshape = subshape_idx_pair.first;
+        int subshape_idx = subshape_idx_pair.second;
 
         if (subshape.ShapeType() == TopAbs_FACE) {
             TopoDS_Face subface = TopoDS::Face(subshape);
-            opencascade::handle<Poly_Triangulation> subface_triangulation =
+            auto subface_triangulation =
                 BRep_Tool::Triangulation(subface, loc);
             
             if (!subface_triangulation.IsNull()) {
@@ -317,16 +321,75 @@ void OCCTBody::Tesselate(
                 }
 
                 // Add new triangles
+                // Associate each fin (represented by a start point index and end point index
+                // in the triangulation nodes) with a tri index in tris and the index
+                // of the corresponding fin in the tri to allow filling
+                // of fin_edge
+                std::map<std::pair<int, int>, std::pair<int, int>> nodes_to_tri_fin;
+
                 for (int i = 1; i <= subface_triangulation->NbTriangles(); ++i) {
                     Poly_Triangle tri = subface_triangulation->Triangle(i);
-                    gp_Pnt pnt1 = subface_triangulation->Node(tri.Value(1));
-                    gp_Pnt pnt2 = subface_triangulation->Node(tri.Value(2));
-                    gp_Pnt pnt3 = subface_triangulation->Node(tri.Value(3));
+                    int node1 = tri.Value(1);
+                    int node2 = tri.Value(2);
+                    int node3 = tri.Value(3);
+                    gp_Pnt pnt1 = subface_triangulation->Node(node1);
+                    gp_Pnt pnt2 = subface_triangulation->Node(node2);
+                    gp_Pnt pnt3 = subface_triangulation->Node(node3);
                     int pnt1_idx = pnt_idxs[pnt1];
                     int pnt2_idx = pnt_idxs[pnt2];
                     int pnt3_idx = pnt_idxs[pnt3];
+                    int tri_idx = tris.size();
                     tris.emplace_back(pnt1_idx, pnt2_idx, pnt3_idx);
+                    tri_face.push_back(subshape_idx);
+                    nodes_to_tri_fin[std::pair<int, int>(node1, node2)] =
+                        std::pair<int, int>(tri_idx, 1);
+                    nodes_to_tri_fin[std::pair<int, int>(node2, node3)] =
+                        std::pair<int, int>(tri_idx, 2);
+                    nodes_to_tri_fin[std::pair<int, int>(node3, node1)] =
+                        std::pair<int, int>(tri_idx, 0);
                 }
+
+                // Add new fins associated with edges
+                // Create _shape_to_idx to associate entities with logical IDs
+                TopTools_IndexedMapOfShape subshape_map;
+                TopExp::MapShapes(subshape, subshape_map);
+
+                for (auto iterator = subshape_map.cbegin(); iterator != subshape_map.cend(); iterator++) {
+                    TopoDS_Shape subsubshape = *iterator;
+                    int subsubshape_idx = _shape_to_idx[subsubshape];
+
+                    if (subsubshape.ShapeType() == TopAbs_EDGE) {
+                        TopoDS_Edge subsubedge = TopoDS::Edge(subsubshape);
+                        auto poly = BRep_Tool::PolygonOnTriangulation(subsubedge, subface_triangulation, loc);
+
+                        if (!poly.IsNull()) {
+                            // Loop through the polygon, matching each fin with its index in fin_indices
+                            // and matching that index with the index of the edge in _shape_to_idx
+                            for (int i = 1; i <= poly->NbNodes() - 1; ++i) {
+                                int node1 = poly->Nodes()[i];
+                                int node2 = poly->Nodes()[i + 1];
+
+                                auto fin_idx = nodes_to_tri_fin[std::pair<int, int>(node1, node2)];
+                                fin_edge[fin_idx] = subsubshape_idx;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Fill pnt_vertex
+    for (const auto& subshape_idx_pair : _shape_to_idx) {
+        TopoDS_Shape subshape = subshape_idx_pair.first;
+        int subshape_idx = subshape_idx_pair.second;
+
+        if (subshape.ShapeType() == TopAbs_VERTEX) {
+            TopoDS_Vertex subvertex = TopoDS::Vertex(subshape);
+            gp_Pnt subvertex_pnt = BRep_Tool::Pnt(subvertex);
+
+            if (pnt_idxs.find(subvertex_pnt) != pnt_idxs.end()) {
+                pnt_vertex[pnt_idxs[subvertex_pnt]] = subshape_idx;
             }
         }
     }
@@ -349,9 +412,60 @@ void OCCTBody::Tesselate(
         F(i, 2) = vec(2);
     }
 
-    // TODO: Populate Mesh to Topology References
+    // Populate Mesh to Topology Face References
+    FtoT.resize(tri_face.size());
+    for (int i = 0; i < tri_face.size(); ++i) {
+        FtoT[i] = tri_face[i];
+    }
+    // Populate Mesh to Topology Edge References
+    EtoT = Eigen::MatrixXi::Zero(F.rows(), 3);
+    for (const auto& fin_idx_edge_idx : fin_edge) {
+        auto fin_idx = fin_idx_edge_idx.first;
+        auto edge_idx = fin_idx_edge_idx.second;
+        EtoT(fin_idx.first, fin_idx.second) = edge_idx;
+    }
+    // Populate Mesh to Topology Vertex References
+    VtoT = Eigen::VectorXi::Zero(V.rows());
+    for (const auto& pnt_idx_vertex_idx : pnt_vertex) {
+        auto pnt_idx = pnt_idx_vertex_idx.first;
+        auto vertex_idx = pnt_idx_vertex_idx.second;
+        VtoT(pnt_idx) = vertex_idx;
+    }
 }
 
 void OCCTBody::debug() {
-    // TODO: implement
+    PK_ERROR_t err = PK_ERROR_no_errors;
+    TopAbs_ShapeEnum entity_class = _shape.ShapeType();
+    std::cout << entity_class << std::endl;
+    auto topo = GetTopology();
+    auto mass = GetMassProperties();
+
+    Eigen::MatrixXd xfrm(4, 4);
+    xfrm <<
+        1, 0, 0, 0.0,
+        0, 1, 0, 0.0,
+        0, 0, 1, 0.0,
+        0, 0, 0, 0.5;
+    err = Transform(xfrm);
+    std::cout << "xfrm error = " << err << std::endl;
+    auto topo_xfrmed = GetTopology();
+    auto mass_xfrmed = GetMassProperties();
+
+
+    Eigen::MatrixXd V;
+    Eigen::MatrixXi F;
+    Eigen::VectorXi FtoT;
+    Eigen::MatrixXi EtoT;
+    Eigen::VectorXi VtoT;
+    Tesselate(V, F, FtoT, EtoT, VtoT);
+
+    std::cout << "Num Vertices: " << topo.vertices.size() << std::endl;
+    std::cout << "Num face-face relations: " << topo.face_to_face.size() << std::endl;
+    std::cout << "Num Tess Verts: " << V.rows() << std::endl;
+    std::cout << "Num Tess Faces: " << F.rows() << std::endl;
+    std::cout << "Mass Amount: " << mass.amount << std::endl;
+    std::cout << "Mass Mass: " << mass.mass << std::endl;
+    std::cout << "Mass c of G:" << std::endl << mass.c_of_g << std::endl;
+    std::cout << "Mass m of i:" << std::endl << mass.m_of_i << std::endl;
+    std::cout << "Num Tess Faces: " << F.rows() << std::endl;
 }
