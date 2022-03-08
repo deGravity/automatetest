@@ -6,6 +6,176 @@
 
 namespace py = pybind11;
 
+
+std::string face_repr(const Face& f) {
+	std::string message = "";
+	switch (f.function) {
+	case SurfaceFunction::PLANE:
+		message += "PLANE(";
+		break;
+	case SurfaceFunction::CYLINDER:
+		message += "CYLINDER(";
+		break;
+	case SurfaceFunction::CONE:
+		message += "CONE(";
+		break;
+	case SurfaceFunction::SPHERE:
+		message += "SPHERE(";
+		break;
+	case SurfaceFunction::TORUS:
+		message += "TORUS(";
+		break;
+	case SurfaceFunction::SPUN:
+		message += "SPUN(";
+		break;
+	case SurfaceFunction::BSURF:
+		message += "BSURF(";
+		break;
+	case SurfaceFunction::OFFSET:
+		message += "OFFSET(";
+		break;
+	case SurfaceFunction::SWEPT:
+		message += "SWEPT(";
+		break;
+	case SurfaceFunction::BLENDSF:
+		message += "BLENDSF(";
+		break;
+	case SurfaceFunction::MESH:
+		message += "MESH(";
+		break;
+	case SurfaceFunction::FSURF:
+		message += "FSURF";
+		break;
+	case SurfaceFunction::BEZIERSURFACE:
+		message += "BEZIERSURFACE";
+		break;
+	case SurfaceFunction::BSPLINESURFACE:
+		message += "BSPLINESURFACE";
+		break;
+	case SurfaceFunction::SURFACEOFEXTRUSION:
+		message += "SURFACEOFEXTRUSION";
+		break;
+	case SurfaceFunction::OFFSETSURFACE:
+		message += "OFFSETSURFACE";
+		break;
+	case SurfaceFunction::OTHERSURFACE:
+		message += "OTHERSURFACE";
+		break;
+	case SurfaceFunction::SURFACEOFREVOLUTION:
+		message += "SURFACEOFREVOLUTION";
+		break;
+	}
+	for (int i = 0; i < f.parameters.size(); ++i) {
+		if (i > 0) {
+			message += ",";
+		}
+		message += std::to_string(f.parameters[i]);
+	}
+	message += ")";
+	return message;
+}
+
+std::string loop_repr(const Loop& l) {
+	std::string message = "";
+	switch (l._type) {
+	case LoopType::OUTER:
+		message = "<Outer Loop>";
+		break;
+	case LoopType::LIKELY_OUTER:
+		message = "<Likely Outer Loop>";
+		break;
+	case LoopType::INNER:
+		message = "<Inner Loop>";
+		break;
+	case LoopType::LIKELY_INNER:
+		message = "<Likely Inner Loop>";
+		break;
+	case LoopType::INNER_SING:
+		message = "<Inner Singular Loop>";
+		break;
+	case LoopType::VERTEX:
+		message = "<Vertex Loop>";
+		break;
+	case LoopType::UNCLEAR:
+		message = "<Unclear Loop>";
+		break;
+	case LoopType::WINDING:
+		message = "<Winding Loop>";
+		break;
+	case LoopType::WIRE:
+		message = "<Wire Loop>";
+		break;
+	case LoopType::ERROR:
+		message = "<Error Loop>";
+		break;
+	}
+	return message;
+}
+
+std::string edge_repr(const Edge& e) {
+	std::string message = "";
+
+	switch (e.function) {
+	case CurveFunction::LINE:
+		message += "LINE(";
+		break;
+	case CurveFunction::CIRCLE:
+		message += "CIRCLE(";
+		break;
+	case CurveFunction::ELLIPSE:
+		message += "ELLIPSE(";
+		break;
+	case CurveFunction::BCURVE:
+		message += "BCURVE(";
+		break;
+	case CurveFunction::ICURVE:
+		message += "ICURVE(";
+		break;
+	case CurveFunction::FCURVE:
+		message += "FCURVE(";
+		break;
+	case CurveFunction::SPCURVE:
+		message += "SPCURVE(";
+		break;
+	case CurveFunction::TRCURVE:
+		message += "TRCURVE(";
+		break;
+	case CurveFunction::CPCURVE:
+		message += "CPCURVE(";
+		break;
+	case CurveFunction::PLINE:
+		message += "PLINE(";
+		break;
+	case CurveFunction::HYPERBOLA:
+		message += "HYPERBOLA(";
+		break;
+	case CurveFunction::PARABOLA:
+		message += "PARABOLA(";
+		break;
+	case CurveFunction::BEZIERCURVE:
+		message += "BEZIERCURVE(";
+		break;
+	case CurveFunction::BSPLINECURVE:
+		message += "BSPLINECURVE(";
+		break;
+	case CurveFunction::OFFSETCURVE:
+		message += "OFFSETCURVE(";
+		break;
+	case CurveFunction::OTHERCURVE:
+		message += "OTHERCURVE(";
+		break;
+	}
+
+	for (int i = 0; i < e.parameters.size(); ++i) {
+		if (i > 0) {
+			message += ",";
+		}
+		message += std::to_string(e.parameters[i]);
+	}
+	message += ")";
+	return message;
+}
+
 PYBIND11_MODULE(pspy_cpp, m) {
 	// part.h
 
@@ -170,17 +340,36 @@ PYBIND11_MODULE(pspy_cpp, m) {
 	
 	// body.h
 	py::class_<Body>(m, "Body")
-		.def("GetTopology", &Body::GetTopology)
-		.def("GetMassProperties", &Body::GetMassProperties)
-		.def("GetBoundingBox", &Body::GetBoundingBox)
-		.def("Transform", &Body::Transform)
-		.def("Tesselate", &Body::Tesselate)
 		.def("__repr__",
 			[](const Body& p) {
+				return "<Body>";
+			});
+
+	py::class_<PSBody>(m, "PSBody")
+		.def("GetTopology", &PSBody::GetTopology)
+		.def("GetMassProperties", &PSBody::GetMassProperties)
+		.def("GetBoundingBox", &PSBody::GetBoundingBox)
+		.def("Transform", &PSBody::Transform)
+		.def("Tesselate", &PSBody::Tesselate)
+		.def("__repr__",
+			[](const PSBody& p) {
 				return "<Parasolid Body>";
 			});
 
+	py::class_<OCCTBody>(m, "OCCTBody")
+		.def("GetTopology", &OCCTBody::GetTopology)
+		.def("GetMassProperties", &OCCTBody::GetMassProperties)
+		.def("GetBoundingBox", &OCCTBody::GetBoundingBox)
+		.def("Transform", &OCCTBody::Transform)
+		.def("Tesselate", &OCCTBody::Tesselate)
+		.def("__repr__",
+			[](const OCCTBody& p) {
+				return "<Open CASCADE Body>";
+			});
+
+	m.def("read_file", &read_file);
 	m.def("read_xt", &read_xt);
+	m.def("read_step", &read_step);
 
 	
 
@@ -205,6 +394,12 @@ PYBIND11_MODULE(pspy_cpp, m) {
 		.value("BLENDSF", SurfaceFunction::BLENDSF)
 		.value("MESH", SurfaceFunction::MESH)
 		.value("FSURF", SurfaceFunction::FSURF)
+		.value("BEZIERSURFACE", SurfaceFunction::BEZIERSURFACE)
+		.value("BSPLINESURFACE", SurfaceFunction::BSPLINESURFACE)
+		.value("SURFACEOFEXTRUSION", SurfaceFunction::SURFACEOFEXTRUSION)
+		.value("OFFSETSURFACE", SurfaceFunction::OFFSETSURFACE)
+		.value("OTHERSURFACE", SurfaceFunction::OTHERSURFACE)
+		.value("SURFACEOFREVOLUTION", SurfaceFunction::SURFACEOFREVOLUTION)
 		.value("NONE", SurfaceFunction::NONE);
 
 	py::enum_<CurveFunction>(m, "CurveFunction")
@@ -218,6 +413,12 @@ PYBIND11_MODULE(pspy_cpp, m) {
 		.value("TRCURVE", CurveFunction::TRCURVE)
 		.value("CPCURVE", CurveFunction::CPCURVE)
 		.value("PLINE", CurveFunction::PLINE)
+		.value("HYPERBOLA", CurveFunction::HYPERBOLA)
+		.value("PARABOLA", CurveFunction::PARABOLA)
+		.value("BEZIERCURVE", CurveFunction::BEZIERCURVE)
+		.value("BSPLINECURVE", CurveFunction::BSPLINECURVE)
+		.value("OFFSETCURVE", CurveFunction::OFFSETCURVE)
+		.value("OTHERCURVE", CurveFunction::OTHERCURVE)
 		.value("NONE", CurveFunction::NONE);
 
 	py::enum_<LoopType>(m, "LoopType")
@@ -320,8 +521,6 @@ PYBIND11_MODULE(pspy_cpp, m) {
 
 	// face.h
 	py::class_<Face>(m, "Face")
-		.def("get_inferences", &Face::get_inferences)
-		.def("sample_points", &Face::sample_points)
 		.def_readonly("function", &Face::function)
 		.def_readonly("parameters", &Face::parameters)
 		.def_readonly("orientation", &Face::orientation)
@@ -334,187 +533,173 @@ PYBIND11_MODULE(pspy_cpp, m) {
 		.def_readonly("circumference", &Face::circumference)
 		.def_readonly("center_of_gravity", &Face::center_of_gravity)
 		.def_readonly("moment_of_inertia", &Face::moment_of_inertia)
-		.def("__repr__",
-			[](const Face& f) {
-				std::string message = "";
-				switch (f.function) {
-				case SurfaceFunction::PLANE:
-					message += "PLANE(";
-					break;
-				case SurfaceFunction::CYLINDER:
-					message += "CYLINDER(";
-					break;
-				case SurfaceFunction::CONE:
-					message += "CONE(";
-					break;
-				case SurfaceFunction::SPHERE:
-					message += "SPHERE(";
-					break;
-				case SurfaceFunction::TORUS:
-					message += "TORUS(";
-					break;
-				case SurfaceFunction::SPUN:
-					message += "SPUN(";
-					break;
-				case SurfaceFunction::BSURF:
-					message += "BSURF(";
-					break;
-				case SurfaceFunction::OFFSET:
-					message += "OFFSET(";
-					break;
-				case SurfaceFunction::SWEPT:
-					message += "SWEPT(";
-					break;
-				case SurfaceFunction::BLENDSF:
-					message += "BLENDSF(";
-					break;
-				case SurfaceFunction::MESH:
-					message += "MESH(";
-					break;
-				case SurfaceFunction::FSURF:
-					message += "FSURF";
-					break;
-				}
-				for (int i = 0; i < f.parameters.size(); ++i) {
-					if (i > 0) {
-						message += ",";
-					}
-					message += std::to_string(f.parameters[i]);
-				}
-				message += ")";
-				return message;
-			});
+		.def("__repr__", face_repr);
+
+	py::class_<PSFace>(m, "PSFace")
+		.def("get_inferences", &PSFace::get_inferences)
+		.def("sample_points", &PSFace::sample_points)
+		.def_readonly("function", &PSFace::function)
+		.def_readonly("parameters", &PSFace::parameters)
+		.def_readonly("orientation", &PSFace::orientation)
+		.def_readonly("bounding_box", &PSFace::bounding_box)
+		.def_readonly("na_bb_center", &PSFace::na_bb_center)
+		.def_readonly("na_bb_x", &PSFace::na_bb_x)
+		.def_readonly("na_bb_z", &PSFace::na_bb_z)
+		.def_readonly("na_bounding_box", &PSFace::na_bounding_box)
+		.def_readonly("surface_area", &PSFace::surface_area)
+		.def_readonly("circumference", &PSFace::circumference)
+		.def_readonly("center_of_gravity", &PSFace::center_of_gravity)
+		.def_readonly("moment_of_inertia", &PSFace::moment_of_inertia)
+		.def("__repr__", face_repr);
+
+	py::class_<OCCTFace>(m, "OCCTFace")
+		.def("get_inferences", &OCCTFace::get_inferences)
+		.def("sample_points", &OCCTFace::sample_points)
+		.def_readonly("function", &OCCTFace::function)
+		.def_readonly("parameters", &OCCTFace::parameters)
+		.def_readonly("orientation", &OCCTFace::orientation)
+		.def_readonly("bounding_box", &OCCTFace::bounding_box)
+		.def_readonly("na_bb_center", &OCCTFace::na_bb_center)
+		.def_readonly("na_bb_x", &OCCTFace::na_bb_x)
+		.def_readonly("na_bb_z", &OCCTFace::na_bb_z)
+		.def_readonly("na_bounding_box", &OCCTFace::na_bounding_box)
+		.def_readonly("surface_area", &OCCTFace::surface_area)
+		.def_readonly("circumference", &OCCTFace::circumference)
+		.def_readonly("center_of_gravity", &OCCTFace::center_of_gravity)
+		.def_readonly("moment_of_inertia", &OCCTFace::moment_of_inertia)
+		.def("__repr__", face_repr);
 
 
 	// loop.h
-		py::class_<Loop>(m, "Loop")
-			.def("get_inferences", &Loop::get_inferences)
-			.def_readonly("_type", &Loop::_type)
-			.def_readonly("_is_circle", &Loop::_is_circle)
-			.def_readonly("length", &Loop::length)
-			.def_readonly("center_of_gravity", &Loop::center_of_gravity)
-			.def_readonly("moment_of_inertia", &Loop::moment_of_inertia)
-			.def_readonly("na_bb_center", &Loop::na_bb_center)
-			.def_readonly("na_bb_x", &Loop::na_bb_x)
-			.def_readonly("na_bb_z", &Loop::na_bb_z)
-			.def_readonly("na_bounding_box", &Loop::na_bounding_box)
-			.def("__repr__",
-				[](const Loop& l) {
-					std::string message = "";
-					switch (l._type) {
-					case LoopType::OUTER:
-						message = "<Outer Loop>";
-						break;
-					case LoopType::LIKELY_OUTER:
-						message = "<Likely Outer Loop>";
-						break;
-					case LoopType::INNER:
-						message = "<Inner Loop>";
-						break;
-					case LoopType::LIKELY_INNER:
-						message = "<Likely Inner Loop>";
-						break;
-					case LoopType::INNER_SING:
-						message = "<Inner Singular Loop>";
-						break;
-					case LoopType::VERTEX:
-						message = "<Vertex Loop>";
-						break;
-					case LoopType::UNCLEAR:
-						message = "<Unclear Loop>";
-						break;
-					case LoopType::WINDING:
-						message = "<Winding Loop>";
-						break;
-					case LoopType::WIRE:
-						message = "<Wire Loop>";
-						break;
-					case LoopType::ERROR:
-						message = "<Error Loop>";
-						break;
-					}
-					return message;
-				});
+	py::class_<Loop>(m, "Loop")
+		.def_readonly("_type", &Loop::_type)
+		.def_readonly("_is_circle", &Loop::_is_circle)
+		.def_readonly("length", &Loop::length)
+		.def_readonly("center_of_gravity", &Loop::center_of_gravity)
+		.def_readonly("moment_of_inertia", &Loop::moment_of_inertia)
+		.def_readonly("na_bb_center", &Loop::na_bb_center)
+		.def_readonly("na_bb_x", &Loop::na_bb_x)
+		.def_readonly("na_bb_z", &Loop::na_bb_z)
+		.def_readonly("na_bounding_box", &Loop::na_bounding_box)
+		.def("__repr__", loop_repr);
 
-		// edge.h
+	py::class_<PSLoop>(m, "PSLoop")
+		.def("get_inferences", &PSLoop::get_inferences)
+		.def_readonly("_type", &PSLoop::_type)
+		.def_readonly("_is_circle", &PSLoop::_is_circle)
+		.def_readonly("length", &PSLoop::length)
+		.def_readonly("center_of_gravity", &PSLoop::center_of_gravity)
+		.def_readonly("moment_of_inertia", &PSLoop::moment_of_inertia)
+		.def_readonly("na_bb_center", &PSLoop::na_bb_center)
+		.def_readonly("na_bb_x", &PSLoop::na_bb_x)
+		.def_readonly("na_bb_z", &PSLoop::na_bb_z)
+		.def_readonly("na_bounding_box", &PSLoop::na_bounding_box)
+		.def("__repr__", loop_repr);
 
-		py::class_<Edge>(m, "Edge")
-			.def("get_inferences", &Edge::get_inferences)
-			.def("sample_points", &Edge::sample_points)
-			.def_readonly("function", &Edge::function)
-			.def_readonly("parameters", &Edge::parameters)
-			.def_readonly("t_start", &Edge::t_start)
-			.def_readonly("t_end", &Edge::t_end)
-			.def_readonly("start", &Edge::start)
-			.def_readonly("end", &Edge::end)
-			.def_readonly("has_curve", &Edge::_has_curve)
-			.def_readonly("_is_reversed", &Edge::_is_reversed)
-			.def_readonly("is_periodic", &Edge::is_periodic)
-			.def_readonly("mid_point", &Edge::mid_point)
-			.def_readonly("length", &Edge::length)
-			.def_readonly("center_of_gravity", &Edge::center_of_gravity)
-			.def_readonly("moment_of_inertia", &Edge::moment_of_inertia)
-			.def_readonly("bounding_box", &Edge::bounding_box)
-			.def_readonly("na_bb_center", &Edge::na_bb_center)
-			.def_readonly("na_bb_x", &Edge::na_bb_x)
-			.def_readonly("na_bb_z", &Edge::na_bb_z)
-			.def_readonly("nn_bounding_box", &Edge::na_bounding_box)
-			.def("__repr__",
-				[](const Edge& e) {
-					std::string message = "";
+	py::class_<OCCTLoop>(m, "OCCTLoop")
+		.def("get_inferences", &OCCTLoop::get_inferences)
+		.def_readonly("_type", &OCCTLoop::_type)
+		.def_readonly("_is_circle", &OCCTLoop::_is_circle)
+		.def_readonly("length", &OCCTLoop::length)
+		.def_readonly("center_of_gravity", &OCCTLoop::center_of_gravity)
+		.def_readonly("moment_of_inertia", &OCCTLoop::moment_of_inertia)
+		.def_readonly("na_bb_center", &OCCTLoop::na_bb_center)
+		.def_readonly("na_bb_x", &OCCTLoop::na_bb_x)
+		.def_readonly("na_bb_z", &OCCTLoop::na_bb_z)
+		.def_readonly("na_bounding_box", &OCCTLoop::na_bounding_box)
+		.def("__repr__", loop_repr);
 
-					switch (e.function) {
-					case CurveFunction::LINE:
-						message += "LINE(";
-						break;
-					case CurveFunction::CIRCLE:
-						message += "CIRCLE(";
-						break;
-					case CurveFunction::ELLIPSE:
-						message += "ELLIPSE(";
-						break;
-					case CurveFunction::BCURVE:
-						message += "BCURVE(";
-						break;
-					case CurveFunction::ICURVE:
-						message += "ICURVE(";
-						break;
-					case CurveFunction::FCURVE:
-						message += "FCURVE(";
-						break;
-					case CurveFunction::SPCURVE:
-						message += "SPCURVE(";
-						break;
-					case CurveFunction::TRCURVE:
-						message += "TRCURVE(";
-						break;
-					case CurveFunction::CPCURVE:
-						message += "CPCURVE(";
-						break;
-					case CurveFunction::PLINE:
-						message += "PLINE(";
-						break;
-					}
+	// edge.h
+	py::class_<Edge>(m, "Edge")
+		.def_readonly("function", &Edge::function)
+		.def_readonly("parameters", &Edge::parameters)
+		.def_readonly("t_start", &Edge::t_start)
+		.def_readonly("t_end", &Edge::t_end)
+		.def_readonly("start", &Edge::start)
+		.def_readonly("end", &Edge::end)
+		.def_readonly("has_curve", &Edge::_has_curve)
+		.def_readonly("_is_reversed", &Edge::_is_reversed)
+		.def_readonly("is_periodic", &Edge::is_periodic)
+		.def_readonly("mid_point", &Edge::mid_point)
+		.def_readonly("length", &Edge::length)
+		.def_readonly("center_of_gravity", &Edge::center_of_gravity)
+		.def_readonly("moment_of_inertia", &Edge::moment_of_inertia)
+		.def_readonly("bounding_box", &Edge::bounding_box)
+		.def_readonly("na_bb_center", &Edge::na_bb_center)
+		.def_readonly("na_bb_x", &Edge::na_bb_x)
+		.def_readonly("na_bb_z", &Edge::na_bb_z)
+		.def_readonly("nn_bounding_box", &Edge::na_bounding_box)
+		.def("__repr__", edge_repr);
 
-					for (int i = 0; i < e.parameters.size(); ++i) {
-						if (i > 0) {
-							message += ",";
-						}
-						message += std::to_string(e.parameters[i]);
-					}
-					message += ")";
-					return message;
-				});
+	py::class_<PSEdge>(m, "PSEdge")
+		.def("get_inferences", &PSEdge::get_inferences)
+		.def("sample_points", &PSEdge::sample_points)
+		.def_readonly("function", &PSEdge::function)
+		.def_readonly("parameters", &PSEdge::parameters)
+		.def_readonly("t_start", &PSEdge::t_start)
+		.def_readonly("t_end", &PSEdge::t_end)
+		.def_readonly("start", &PSEdge::start)
+		.def_readonly("end", &PSEdge::end)
+		.def_readonly("has_curve", &PSEdge::_has_curve)
+		.def_readonly("_is_reversed", &PSEdge::_is_reversed)
+		.def_readonly("is_periodic", &PSEdge::is_periodic)
+		.def_readonly("mid_point", &PSEdge::mid_point)
+		.def_readonly("length", &PSEdge::length)
+		.def_readonly("center_of_gravity", &PSEdge::center_of_gravity)
+		.def_readonly("moment_of_inertia", &PSEdge::moment_of_inertia)
+		.def_readonly("bounding_box", &PSEdge::bounding_box)
+		.def_readonly("na_bb_center", &PSEdge::na_bb_center)
+		.def_readonly("na_bb_x", &PSEdge::na_bb_x)
+		.def_readonly("na_bb_z", &PSEdge::na_bb_z)
+		.def_readonly("nn_bounding_box", &PSEdge::na_bounding_box)
+		.def("__repr__", edge_repr);
+
+	py::class_<OCCTEdge>(m, "OCCTEdge")
+		.def("get_inferences", &OCCTEdge::get_inferences)
+		.def("sample_points", &OCCTEdge::sample_points)
+		.def_readonly("function", &OCCTEdge::function)
+		.def_readonly("parameters", &OCCTEdge::parameters)
+		.def_readonly("t_start", &OCCTEdge::t_start)
+		.def_readonly("t_end", &OCCTEdge::t_end)
+		.def_readonly("start", &OCCTEdge::start)
+		.def_readonly("end", &OCCTEdge::end)
+		.def_readonly("has_curve", &OCCTEdge::_has_curve)
+		.def_readonly("_is_reversed", &OCCTEdge::_is_reversed)
+		.def_readonly("is_periodic", &OCCTEdge::is_periodic)
+		.def_readonly("mid_point", &OCCTEdge::mid_point)
+		.def_readonly("length", &OCCTEdge::length)
+		.def_readonly("center_of_gravity", &OCCTEdge::center_of_gravity)
+		.def_readonly("moment_of_inertia", &OCCTEdge::moment_of_inertia)
+		.def_readonly("bounding_box", &OCCTEdge::bounding_box)
+		.def_readonly("na_bb_center", &OCCTEdge::na_bb_center)
+		.def_readonly("na_bb_x", &OCCTEdge::na_bb_x)
+		.def_readonly("na_bb_z", &OCCTEdge::na_bb_z)
+		.def_readonly("nn_bounding_box", &OCCTEdge::na_bounding_box)
+		.def("__repr__", edge_repr);
 		
 
-		// vertex.h
+	// vertex.h
+	py::class_<Vertex>(m, "Vertex")
+		.def_readonly("position", &Vertex::position)
+		.def("__repr__",
+			[](const Vertex& v) {
+				return "Vertex(" + std::to_string(v.position(0)) + "," + std::to_string(v.position(1)) + "," + std::to_string(v.position(2)) + ")";
+			});
 
-		py::class_<Vertex>(m, "Vertex")
-			.def("get_inferences", &Vertex::get_inferences)
-			.def_readonly("position", &Vertex::position)
-			.def("__repr__",
-				[](const Vertex& v) {
-					return "Vertex(" + std::to_string(v.position(0)) + "," + std::to_string(v.position(1)) + "," + std::to_string(v.position(2)) + ")";
-				});
+	py::class_<PSVertex>(m, "PSVertex")
+		.def("get_inferences", &PSVertex::get_inferences)
+		.def_readonly("position", &PSVertex::position)
+		.def("__repr__",
+			[](const PSVertex& v) {
+				return "Vertex(" + std::to_string(v.position(0)) + "," + std::to_string(v.position(1)) + "," + std::to_string(v.position(2)) + ")";
+			});
+
+	py::class_<OCCTVertex>(m, "OCCTVertex")
+		.def("get_inferences", &OCCTVertex::get_inferences)
+		.def_readonly("position", &OCCTVertex::position)
+		.def("__repr__",
+			[](const OCCTVertex& v) {
+				return "Vertex(" + std::to_string(v.position(0)) + "," + std::to_string(v.position(1)) + "," + std::to_string(v.position(2)) + ")";
+			});
 
 }
