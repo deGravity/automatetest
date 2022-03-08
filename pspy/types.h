@@ -5,6 +5,11 @@
 #include <assert.h>
 #include <parasolid.h>
 #include <gp_Pnt.hxx>
+#include <gp_Mat.hxx>
+#include <BRepGProp.hxx>
+#include <GProp_GProps.hxx>
+#include <TopoDS_Shape.hxx>
+#include <TopAbs_ShapeEnum.hxx>
 
 enum class TopologyType {
     FACE,
@@ -107,6 +112,71 @@ struct MassProperties {
             periphery = 0;
         }
     }
+
+    MassProperties(const TopoDS_Shape& shape, double accuracy = MASS_ACC) {
+        m_of_i.resize(3, 3);
+
+        if (!shape.IsNull()) {
+            gp_Pnt c_of_g_pnt;
+            gp_Mat m_of_i_mat;
+            GProp_GProps linear_props;
+            GProp_GProps surface_props;
+            GProp_GProps volume_props;
+
+            // TODO: handle different densities.
+            //  BRepGProp functions do not attach density to the entities considered,
+            //  which may lead to different results from PK_TOPOL_eval_mass_props,
+            //  as per
+            //  https://dev.opencascade.org/doc/refman/html/class_b_rep_g_prop.html.
+            switch (shape.ShapeType()) {
+            case TopAbs_COMPOUND:
+            case TopAbs_COMPSOLID:
+            case TopAbs_SOLID:
+            case TopAbs_SHELL:
+                BRepGProp::VolumeProperties(shape, volume_props, accuracy);
+                BRepGProp::SurfaceProperties(shape, surface_props, accuracy);
+                amount = volume_props.Mass();
+                periphery = surface_props.Mass();
+                c_of_g_pnt = volume_props.CentreOfMass();
+                m_of_i_mat = volume_props.MatrixOfInertia();
+                break;
+            case TopAbs_FACE:
+                BRepGProp::SurfaceProperties(shape, surface_props, accuracy);
+                BRepGProp::LinearProperties(shape, linear_props);
+                amount = surface_props.Mass();
+                periphery = linear_props.Mass();
+                c_of_g_pnt = surface_props.CentreOfMass();
+                m_of_i_mat = surface_props.MatrixOfInertia();
+                break;
+            case TopAbs_WIRE:
+            case TopAbs_EDGE:
+                BRepGProp::LinearProperties(shape, linear_props);
+                amount = linear_props.Mass();
+                periphery = 0;
+                c_of_g_pnt = linear_props.CentreOfMass();
+                m_of_i_mat = linear_props.MatrixOfInertia();
+                break;
+            default:
+                amount = 0;
+                periphery = 0;
+                break;
+            }
+
+            mass = amount;
+            c_of_g << c_of_g_pnt.X(), c_of_g_pnt.Y(), c_of_g_pnt.Z();
+            m_of_i <<
+                m_of_i_mat.Value(1, 1), m_of_i_mat.Value(1, 2), m_of_i_mat.Value(1, 3),
+                m_of_i_mat.Value(2, 1), m_of_i_mat.Value(2, 2), m_of_i_mat.Value(2, 3),
+                m_of_i_mat.Value(3, 1), m_of_i_mat.Value(3, 2), m_of_i_mat.Value(3, 3);
+        } else {
+            amount = 0;
+            mass = 0;
+            c_of_g.setZero();
+            m_of_i = Eigen::MatrixXd::Zero(3, 3);
+            periphery = 0;
+        }
+    }
+
     double amount;
     double mass;
     Eigen::Vector3d c_of_g;

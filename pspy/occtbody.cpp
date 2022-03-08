@@ -55,8 +55,6 @@ OCCTBody::OCCTBody(const TopoDS_Shape& shape) {
 }
 
 BREPTopology OCCTBody::GetTopology() {
-    // TODO: handle duplicate edges that only differ in orientation
-
     BREPTopology topology;
 
     std::map<int, int> cat_idx;
@@ -232,8 +230,7 @@ BREPTopology OCCTBody::GetTopology() {
 }
 
 MassProperties OCCTBody::GetMassProperties(double accuracy) {
-    // TODO: implement
-    return MassProperties(0, accuracy);
+    return MassProperties(_shape, accuracy);
 }
 
 Eigen::MatrixXd OCCTBody::GetBoundingBox() {

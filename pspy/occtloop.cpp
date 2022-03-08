@@ -55,24 +55,10 @@ OCCTLoop::OCCTLoop(const TopoDS_Shape& shape, const TopTools_ListOfShape& faces)
             _is_circle = false;
         }
 
-        GProp_GProps linear_props;
-        BRepGProp::LinearProperties(_shape, linear_props);
-        length = linear_props.Mass();
-        center_of_gravity <<
-            linear_props.CentreOfMass().X(),
-            linear_props.CentreOfMass().Y(),
-            linear_props.CentreOfMass().Z();
-        moment_of_inertia.resize(3, 3);
-        moment_of_inertia <<
-            linear_props.MatrixOfInertia().Value(1, 1),
-            linear_props.MatrixOfInertia().Value(1, 2),
-            linear_props.MatrixOfInertia().Value(1, 3),
-            linear_props.MatrixOfInertia().Value(2, 1),
-            linear_props.MatrixOfInertia().Value(2, 2),
-            linear_props.MatrixOfInertia().Value(2, 3),
-            linear_props.MatrixOfInertia().Value(3, 1),
-            linear_props.MatrixOfInertia().Value(3, 2),
-            linear_props.MatrixOfInertia().Value(3, 3);
+        auto m = MassProperties(_shape);
+        length = m.amount;
+        center_of_gravity = m.c_of_g;
+        moment_of_inertia = m.m_of_i;
 
         // Get Non-Aligned Bounding Box
         // Axes are ordered so X is largest, Y is second largest, Z is smallest

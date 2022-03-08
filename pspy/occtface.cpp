@@ -153,29 +153,11 @@ void OCCTFace::init_mass_props() {
         circumference = 0;
         return;
     }
-    else {
-        GProp_GProps surf_props;
-        BRepGProp::SurfaceProperties(_shape, surf_props);
-
-        surface_area = surf_props.Mass();
-        center_of_gravity <<
-            surf_props.CentreOfMass().X(),
-            surf_props.CentreOfMass().Y(),
-            surf_props.CentreOfMass().Z();
-        moment_of_inertia.resize(3, 3);
-        moment_of_inertia <<
-            surf_props.MatrixOfInertia().Value(1, 1),
-            surf_props.MatrixOfInertia().Value(1, 2),
-            surf_props.MatrixOfInertia().Value(1, 3),
-            surf_props.MatrixOfInertia().Value(2, 1),
-            surf_props.MatrixOfInertia().Value(2, 2),
-            surf_props.MatrixOfInertia().Value(2, 3), 
-            surf_props.MatrixOfInertia().Value(3, 1),
-            surf_props.MatrixOfInertia().Value(3, 2),
-            surf_props.MatrixOfInertia().Value(3, 3);
-        // TODO: circumference
-        circumference = 0;
-    }
+    auto m = MassProperties(_shape);
+    surface_area = m.amount;
+    center_of_gravity = m.c_of_g;
+    moment_of_inertia = m.m_of_i;
+    circumference = m.periphery;
 }
 
 void OCCTFace::init_plane() {
