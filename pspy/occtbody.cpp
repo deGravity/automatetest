@@ -19,6 +19,8 @@
 #include <TopLoc_Location.hxx>
 #include <gp_Pnt.hxx>
 #include <Interface_Static.hxx>
+#include <gp_Trsf.hxx>
+#include <BRepBuilderAPI_Transform.hxx>
 
 std::vector<std::shared_ptr<Body>> read_step(std::string path) {
     std::vector<std::shared_ptr<Body>> parts_vec;
@@ -249,7 +251,30 @@ Eigen::MatrixXd OCCTBody::GetBoundingBox() {
 }
 
 int OCCTBody::Transform(const Eigen::MatrixXd& xfrm) {
-    // TODO: implement
+    // TODO: perspective division, if desired.
+    //  We currently assume the last row of xfrm is just
+    //  (0, 0, 0, k) for some constant k.
+    // Apply transform.
+    double k = xfrm(3, 3);
+    gp_Trsf transform_mat;
+    transform_mat.SetValues(
+        xfrm(0, 0) / k, xfrm(0, 1) / k, xfrm(0, 2) / k, xfrm(0, 3) / k,
+        xfrm(1, 0) / k, xfrm(1, 1) / k, xfrm(1, 2) / k, xfrm(1, 3) / k,
+        xfrm(2, 0) / k, xfrm(2, 1) / k, xfrm(2, 2) / k, xfrm(2, 3) / k
+    );
+    BRepBuilderAPI_Transform transform(_shape, transform_mat);
+
+    // Remake _shape and _shape_to_idx.
+    _shape = transform.ModifiedShape(_shape);
+    auto shape_to_idx = _shape_to_idx;
+    _shape_to_idx.clear();
+    for (const auto& subshape_idx_pair : shape_to_idx) {
+        TopoDS_Shape subshape = subshape_idx_pair.first;
+        int idx = subshape_idx_pair.second;
+
+        _shape_to_idx[transform.ModifiedShape(subshape)] = idx;
+    }
+
     return 0;
 }
 
