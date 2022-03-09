@@ -171,7 +171,7 @@ BREPTopology OCCTBody::GetTopology() {
                     orientation == TopAbs_FORWARD ? PK_TOPOL_sense_positive_c :
                     orientation == TopAbs_REVERSED ? PK_TOPOL_sense_negative_c :
                     PK_TOPOL_sense_none_c;
-                
+
                 topology.loop_to_edge.emplace_back(parent, child, sense);
                 loop_to_edges[parent].push_back(child);
 
