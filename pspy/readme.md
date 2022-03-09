@@ -27,6 +27,13 @@ If a different version of occt is already installed,
 
 may be required to avoid linking errors at runtime.
 
+The pytorch and conda-forge channels may need to be enabled to
+satisfy build dependencies. You can add them using
+
+`conda config --add channels pytorch`
+
+`conda config --add channels conda-forge`
+
 ## Using pspy
 
 The pspy module gives you one main entry point for loading a 
