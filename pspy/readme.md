@@ -15,9 +15,10 @@ conda-build is also required to build the module.
 Once you have all of the necessary files in place, pspy can
 be installed with
 
-`conda-build ci/conda`
-
-`conda install --use-local pspy`
+```
+conda-build ci/conda
+conda install --use-local pspy
+```
 
 in this directory.
 
@@ -30,9 +31,10 @@ may be required to avoid linking errors at runtime.
 The pytorch and conda-forge channels may need to be enabled to
 satisfy build dependencies. You can add them using
 
-`conda config --add channels pytorch`
-
-`conda config --add channels conda-forge`
+```
+conda config --add channels pytorch
+conda config --add channels conda-forge
+```
 
 ## Using pspy
 
