@@ -21,6 +21,8 @@
 #include <Interface_Static.hxx>
 #include <gp_Trsf.hxx>
 #include <BRepBuilderAPI_Transform.hxx>
+#include <BRepTools_WireExplorer.hxx>
+#include <TopExp_Explorer.hxx>
 
 std::vector<std::shared_ptr<Body>> read_step(std::string path) {
     std::vector<std::shared_ptr<Body>> parts_vec;
@@ -104,16 +106,15 @@ BREPTopology OCCTBody::GetTopology() {
         i++;
     }
 
-    // Maps for finding face-face edges
-    std::map<int, int> loop_to_face;
-    std::map<int, std::vector<int> > edge_to_loop;
+    // Map for finding face-face edges
+    std::map<int, std::vector<int> > edge_to_faces;
 
     std::map<int, std::vector<int> > face_to_loops;
+    std::map<int, std::vector<int> > face_to_edges;
+    std::map<int, std::vector<int> > face_to_vertices;
     std::map<int, std::vector<int> > loop_to_edges;
-    std::map<int, std::vector<int> > loop_to_vertex;
+    std::map<int, std::vector<int> > loop_to_vertices;
     std::map<int, std::vector<int> > edge_to_vertices;
-    
-    TopTools_IndexedMapOfShape subshape_map;
 
     // Fill topology maps
     for (const auto& subshape_idx_pair : _shape_to_idx) {
@@ -122,99 +123,95 @@ BREPTopology OCCTBody::GetTopology() {
         int parent = topology.pk_to_idx[idx];
         int child;
 
-        switch (subshape.ShapeType()) {
-        case TopAbs_FACE:
-            TopExp::MapShapes(subshape, TopAbs_WIRE, subshape_map);
-            for (auto iterator = subshape_map.cbegin(); iterator != subshape_map.cend(); iterator++) {
-                TopoDS_Shape subsubshape = *iterator;
-                child = topology.pk_to_idx[_shape_to_idx[subsubshape]];
+        if (subshape.ShapeType() == TopAbs_FACE) {
+            // Fill wires
+            TopExp_Explorer explorer(subshape, TopAbs_WIRE);
+            while (explorer.More()) {
+                TopoDS_Shape wire = explorer.Current();
+                child = topology.pk_to_idx[_shape_to_idx[wire]];
 
-                loop_to_face[child] = parent;
                 topology.face_to_loop.emplace_back(parent, child, PK_TOPOL_sense_none_c);
                 face_to_loops[parent].push_back(child);
+
+                explorer.Next();
             }
-            break;
-        case TopAbs_WIRE:
-            TopExp::MapShapes(subshape, TopAbs_EDGE, subshape_map);
-            for (auto iterator = subshape_map.cbegin(); iterator != subshape_map.cend(); iterator++) {
-                TopoDS_Shape subsubshape = *iterator;
-                child = topology.pk_to_idx[_shape_to_idx[subsubshape]];
 
+            // Fill edges
+            explorer.Init(subshape, TopAbs_EDGE);
+            while (explorer.More()) {
+                TopoDS_Shape edge = explorer.Current();
+                child = topology.pk_to_idx[_shape_to_idx[edge]];
+
+                face_to_edges[parent].push_back(child);
+                edge_to_faces[child].push_back(parent);
+
+                explorer.Next();
+            }
+
+            // Fill vertices
+            explorer.Init(subshape, TopAbs_VERTEX);
+            while (explorer.More()) {
+                TopoDS_Shape vertex = explorer.Current();
+                child = topology.pk_to_idx[_shape_to_idx[vertex]];
+
+                face_to_vertices[parent].push_back(child);
+
+                explorer.Next();
+            }
+
+        }
+        else if (subshape.ShapeType() == TopAbs_WIRE) {
+            // Fill edges
+            BRepTools_WireExplorer wire_explorer(TopoDS::Wire(subshape));
+            while (wire_explorer.More()) {
+                TopoDS_Edge edge = wire_explorer.Current();
+                TopAbs_Orientation orientation = wire_explorer.Orientation();
+                child = topology.pk_to_idx[_shape_to_idx[edge]];
                 PK_TOPOL_sense_t sense =
-                    subsubshape.Orientation() == TopAbs_FORWARD ? PK_TOPOL_sense_positive_c :
-                    subsubshape.Orientation() == TopAbs_REVERSED ? PK_TOPOL_sense_negative_c :
+                    orientation == TopAbs_FORWARD ? PK_TOPOL_sense_positive_c :
+                    orientation == TopAbs_REVERSED ? PK_TOPOL_sense_negative_c :
                     PK_TOPOL_sense_none_c;
-
-                edge_to_loop[child].push_back(parent);
+                
                 topology.loop_to_edge.emplace_back(parent, child, sense);
                 loop_to_edges[parent].push_back(child);
+
+                wire_explorer.Next();
             }
-            break;
-        case TopAbs_EDGE:
-            TopExp::MapShapes(subshape, TopAbs_VERTEX, subshape_map);
-            for (auto iterator = subshape_map.cbegin(); iterator != subshape_map.cend(); iterator++) {
-                TopoDS_Shape subsubshape = *iterator;
-                child = topology.pk_to_idx[_shape_to_idx[subsubshape]];
+
+            // Fill vertices
+            TopExp_Explorer explorer(subshape, TopAbs_VERTEX);
+            while (explorer.More()) {
+                TopoDS_Shape vertex = explorer.Current();
+                child = topology.pk_to_idx[_shape_to_idx[vertex]];
+
+                loop_to_vertices[parent].push_back(child);
+
+                explorer.Next();
+            }
+        }
+        else if (subshape.ShapeType() == TopAbs_EDGE) {
+            // Fill vertices
+            TopExp_Explorer explorer(subshape, TopAbs_VERTEX);
+            while (explorer.More()) {
+                TopoDS_Shape vertex = explorer.Current();
+                child = topology.pk_to_idx[_shape_to_idx[vertex]];
 
                 topology.edge_to_vertex.emplace_back(parent, child, PK_TOPOL_sense_none_c);
                 edge_to_vertices[parent].push_back(child);
-            }
-            break;
-        case TopAbs_VERTEX:
-            break;
-        default:
-            break;
-        }
 
-        subshape_map.Clear();
+                explorer.Next();
+            }
+        }
     }
 
     // Also find Face-Face Edges
-    for (auto edgeloop : edge_to_loop) {
-        int edge = edgeloop.first;
-        auto loops = edgeloop.second;
-        assert(loops.size() == 2);
-        int face1 = loop_to_face[loops[0]];
-        int face2 = loop_to_face[loops[1]];
+    for (auto edgefaces : edge_to_faces) {
+        int edge = edgefaces.first;
+        auto faces = edgefaces.second;
+        assert(faces.size() == 2);
+        int face1 = faces[0];
+        int face2 = faces[1];
         topology.face_to_face.emplace_back(face1, face2, edge);
-    }
-
-    // Construct Adjacency List Maps
-
-    // Compute Lower Face Adjacencies
-    std::map<int, std::vector<int> > face_to_edges;
-    std::map<int, std::vector<int> > face_to_vertices;
-    for (int face = 0; face < topology.faces.size(); ++face) {
-        std::set<int> edge_neighbors;
-        std::set<int> vertex_neighbors;
-        for (int loop : face_to_loops[face]) {
-            for (int edge : loop_to_edges[loop]) {
-                edge_neighbors.insert(edge);
-                for (int vertex : edge_to_vertices[edge]) {
-                    vertex_neighbors.insert(vertex);
-                }
-            }
-        }
-        for (int edge : edge_neighbors) {
-            face_to_edges[face].push_back(edge);
-        }
-        for (int vertex : vertex_neighbors) {
-            face_to_vertices[face].push_back(vertex);
-        }
-    }
-
-    // Compute Lower Loop Adjacencies
-    std::map<int, std::vector<int> > loop_to_vertices;
-    for (int loop = 0; loop < topology.loops.size(); ++loop) {
-        std::set<int> vertex_neighbors;
-        for (int edge : loop_to_edges[loop]) {
-            for (int vertex : edge_to_vertices[edge]) {
-                vertex_neighbors.insert(vertex);
-            }
-        }
-        for (int vertex : vertex_neighbors) {
-            loop_to_vertices[loop].push_back(vertex);
-        }
     }
 
     // Assign to structure
@@ -343,37 +340,39 @@ void OCCTBody::Tesselate(
                     tri_face.push_back(subshape_idx);
                     nodes_to_tri_fin[std::pair<int, int>(node1, node2)] =
                         std::pair<int, int>(tri_idx, 1);
+                    nodes_to_tri_fin[std::pair<int, int>(node2, node1)] =
+                        std::pair<int, int>(tri_idx, 1);
                     nodes_to_tri_fin[std::pair<int, int>(node2, node3)] =
                         std::pair<int, int>(tri_idx, 2);
+                    nodes_to_tri_fin[std::pair<int, int>(node3, node2)] =
+                        std::pair<int, int>(tri_idx, 2);
                     nodes_to_tri_fin[std::pair<int, int>(node3, node1)] =
+                        std::pair<int, int>(tri_idx, 0);
+                    nodes_to_tri_fin[std::pair<int, int>(node1, node3)] =
                         std::pair<int, int>(tri_idx, 0);
                 }
 
                 // Add new fins associated with edges
                 // Create _shape_to_idx to associate entities with logical IDs
-                TopTools_IndexedMapOfShape subshape_map;
-                TopExp::MapShapes(subshape, subshape_map);
+                TopExp_Explorer explorer(subface, TopAbs_EDGE);
+                while (explorer.More()) {
+                    TopoDS_Edge edge = TopoDS::Edge(explorer.Current());
+                    int edge_idx = _shape_to_idx[edge];
 
-                for (auto iterator = subshape_map.cbegin(); iterator != subshape_map.cend(); iterator++) {
-                    TopoDS_Shape subsubshape = *iterator;
-                    int subsubshape_idx = _shape_to_idx[subsubshape];
+                    auto poly = BRep_Tool::PolygonOnTriangulation(edge, subface_triangulation, loc);
+                    if (!poly.IsNull()) {
+                        // Loop through the polygon, matching each fin with its index in fin_indices
+                        // and matching that index with the index of the edge in _shape_to_idx
+                        for (int i = poly->Nodes().Lower(); i < poly->Nodes().Upper(); ++i) {
+                            int node1 = poly->Nodes()[i];
+                            int node2 = poly->Nodes()[i + 1];
 
-                    if (subsubshape.ShapeType() == TopAbs_EDGE) {
-                        TopoDS_Edge subsubedge = TopoDS::Edge(subsubshape);
-                        auto poly = BRep_Tool::PolygonOnTriangulation(subsubedge, subface_triangulation, loc);
-
-                        if (!poly.IsNull()) {
-                            // Loop through the polygon, matching each fin with its index in fin_indices
-                            // and matching that index with the index of the edge in _shape_to_idx
-                            for (int i = 1; i <= poly->NbNodes() - 1; ++i) {
-                                int node1 = poly->Nodes()[i];
-                                int node2 = poly->Nodes()[i + 1];
-
-                                auto fin_idx = nodes_to_tri_fin[std::pair<int, int>(node1, node2)];
-                                fin_edge[fin_idx] = subsubshape_idx;
-                            }
+                            auto fin_idx = nodes_to_tri_fin[std::pair<int, int>(node1, node2)];
+                            fin_edge[fin_idx] = edge_idx;
                         }
                     }
+
+                    explorer.Next();
                 }
             }
         }

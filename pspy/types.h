@@ -209,7 +209,7 @@ struct TopoDS_Shape_Hash {
 template <typename T>
 struct TopoDS_Shape_Pred {
     size_t operator()(const T& shape1, const T& shape2) const {
-        return shape1 == shape2;
+        return shape1.IsSame(shape2);
     }
 };
 
