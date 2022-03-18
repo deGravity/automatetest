@@ -474,7 +474,7 @@ def part_to_graph(part, options):
         data.flat_topos = torch.empty((n_topos,0)).float()
         data.num_nodes = n_topos
         data.flat_topos_to_graph_idx = torch.zeros((1,n_topos)).long()
-        data.__edge_sets__['flat_topos_to_graph_idx'] = [1]
+        data.__edge_sets__['flat_topos_to_graph_idx'] = ['graph_idx']
         
         data.face_to_flat_topos = torch.stack([
             torch.arange(n_faces).long(),

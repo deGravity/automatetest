@@ -4,6 +4,7 @@ from .sbgcn import SBGCN, LinearBlock
 from .uvgrid import UVPartDataModule, UVPartDataset, SimplePartDataset, UVPredSBGCN, tb_comp, tb_mesh, tb_edge_mesh, tb_face_mesh, SimplePartDataModule, surface_metric, surface_normals, cos_corner_angles, arc_lengths
 from .grid_nn import FixedGridPredictor
 from .util import run_model, ArgparseInitialized
+from .cached_dataset import SavedDataModule, SavedDataset
 
 __all__ = [
     'jsonify', 

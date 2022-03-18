@@ -84,7 +84,8 @@ def run_model(default_args = dict()):
         pl.seed_everything(args.seed)
         args.deterministic = True
 
-    logger = None if args.debug else TensorBoardLogger(
+    #logger = None if args.debug else TensorBoardLogger(
+    logger = TensorBoardLogger(
         args.tensorboard_path,
         name=args.name,
         default_hp_metric = False,
