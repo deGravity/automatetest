@@ -40,16 +40,18 @@ class MatePredictor(pl.LightningModule):
             pointnet: bool = False,
             point_features: int = 7,
             pointnet_size: int = 1024,
-            #num_points: int = 100
+            #num_points: int = 100,
+            log_points: bool = False
         ):
         super().__init__()
+        self.log_points = log_points
         #self.num_points = num_points
         self.pointnet = pointnet
         self.point_features = point_features
         self.sbgcn = SBGCN(f_in, l_in, e_in, v_in, sbgcn_size, 0)
         out_size = sbgcn_size * 2
         if self.pointnet:
-            self.pointnet = PointNetEncoder(K=point_features, layers=(64, 64, 64, 128, pointnet_size))
+            self.pointnet_encoder = PointNetEncoder(K=point_features, layers=(64, 64, 64, 128, pointnet_size))
             out_size += pointnet_size * 5
 
         self.lin = LinearBlock(out_size, *linear_sizes, 4, last_linear=True)
@@ -82,7 +84,7 @@ class MatePredictor(pl.LightningModule):
         pair_feats = torch.cat([feats_l, feats_r], dim=1)
 
         if self.pointnet:
-            _, pointnet_feats = self.pointnet(graph.motion_points)
+            _, pointnet_feats = self.pointnet_encoder(graph.motion_points)
             pair_feats = torch.cat([pair_feats, pointnet_feats.reshape(pair_feats.shape[0], -1)], dim=1)
 
         preds = self.lin(pair_feats)
@@ -106,6 +108,20 @@ class MatePredictor(pl.LightningModule):
         self.log(mode + '_type_accuracy', self.type_accuracy, on_step=False, on_epoch=True)
 
     def validation_step(self, data, batch_idx):
+        if batch_idx < 10 and self.log_points and self.pointnet:
+            
+            self.logger.experiment.add_mesh(f'mesh_vis_{batch_idx}', vertices = data.V.unsqueeze(0), faces = data.F.T.unsqueeze(0))
+
+            pcs = data.motion_points
+            vertices = pcs[:,0,:,:3]
+            col = torch.zeros_like(vertices)
+            col[:,:100,0] = 255
+            col[:,100:,2] = 255
+            
+            self.logger.experiment.add_mesh(f'points_vis_{batch_idx}', vertices=vertices, colors=col)
+            #self.logger.experiment.add_mesh(f'mesh_pair_vis_{batch_idx}', vertices = data.V.unsqueeze(0), faces = data.debug_mesh_pairs[0][0].unsqueeze(0))
+            #self.logger.experiment.add_mesh(f'full_mesh_vis_{batch_idx}', vertices=data.pc.unsqueeze(0))
+
         target = data.mate_labels
         preds = self(data)
         error = self.loss(preds, target)

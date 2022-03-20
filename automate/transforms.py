@@ -71,23 +71,28 @@ def remap_type_labels(data):
     data.mate_labels = remap_indices[data.mate_labels]
     return data
 
-def sample_motions(npoints, displacement, angle):
+def sample_motions(npoints, displacement, angle, debug=False):
     def _sample_motions(data):
         facet_to_part_id = data.flat_topos_to_graph_idx[0][data.face_to_flat_topos[1][data.F_to_faces[0]]]
         allpoints = []
+        if debug:
+            data.pc, _ = helper_add_point_cloud(npoints, data.V, data.F, use_normals=False)
+            data.debug_mesh_pairs = []
         for i in range(data.part_edges.shape[1]):
             pair = data.part_edges[:,i]
             mcf = data.mcfs[data.axis_labels[i]]
             axis = mcf[:3]
             origin = mcf[3:]
-            facets_both = [data.F.T[facet_to_part_id == p,:] for p in pair]
+            facets_both = [data.F[:,facet_to_part_id == p] for p in pair]
             bothpoints = []
             bothnormals = []
             for p,facets in enumerate(facets_both):
                 pcs, normals, tris = helper_add_point_cloud(npoints, data.V, facets, use_normals=True)
-                
                 bothpoints.append(pcs)
                 bothnormals.append(normals)
+            
+            if debug:
+                data.debug_mesh_pairs.append(torch.cat(facets_both, dim=1).T)
 
             slide_points_0, _ = motion_points(bothpoints, bothnormals, axis, origin, 'SLIDE', displacement=displacement)
             slide_points_1, _ = motion_points(bothpoints, bothnormals, axis, origin, 'SLIDE', displacement=-displacement)
