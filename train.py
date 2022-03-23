@@ -6,6 +6,5 @@ if __name__ == '__main__':
         'name': 'hptest',
         'seed':42,
         'model_class':'automate.FixedGridPredictor',
-        'debug':True
     })
 

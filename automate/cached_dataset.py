@@ -42,7 +42,7 @@ class SavedDataModule(pl.LightningDataModule):
         self,
         torch_path: str,
         pair_data_path: str,
-        splits_path: List[str],
+        splits_path: str,
         filters: List[str] = [],
         exclusions: List[str] = [],
         batch_size: int = 32,
@@ -128,7 +128,7 @@ class SavedDataset(Dataset):
         self.pair_data_path = pair_data_path
         self.debug = debug
         self.distance_threshold = distance_threshold
-        self.transform = compose(*transforms) if transforms else None
+        self.transform = compose(*transforms[::-1]) if transforms else None
 
         with open(index_file) as f:
             self.index = [int(l.rstrip()) for l in f.readlines()]
