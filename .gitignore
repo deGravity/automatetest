@@ -3,6 +3,7 @@
 .vs/
 .DS_Store
 .idea/
+pspy/parasolid/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
