@@ -24,6 +24,9 @@ class MatePredictor(MatePredictorBase):
             motion_pointnet: bool = False,
             point_features: int = 7,
             pointnet_size: int = 1024,
+            use_uvnet: bool = False,
+            crv_emb_dim: int = 64,
+            srf_emb_dim: int = 64,
             #num_points: int = 100,
             log_points: bool = False
         ):
@@ -35,7 +38,7 @@ class MatePredictor(MatePredictorBase):
         self.point_features = point_features
         out_size = 0
         if self.use_sbgcn:
-            self.sbgcn = SBGCN(f_in, l_in, e_in, v_in, sbgcn_size, 0)
+            self.sbgcn = SBGCN(f_in, l_in, e_in, v_in, sbgcn_size, 0, use_uvnet_features=use_uvnet, crv_emb_dim=crv_emb_dim, srf_emb_dim=srf_emb_dim)
             out_size += sbgcn_size * 2
         if self.pointnet:
             self.pointnet_encoder = PointNetEncoder(K=point_features, layers=(64, 64, 64, 128, pointnet_size))
