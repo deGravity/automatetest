@@ -72,7 +72,7 @@ def remap_type_labels(data):
     return data
 
 
-def sample_points(npoints):
+def sample_points(npoints, assembly_points):
     def _sample_points(data):
         facet_to_part_id = data.flat_topos_to_graph_idx[0][data.face_to_flat_topos[1][data.F_to_faces[0]]]
         allpoints = []
@@ -86,7 +86,14 @@ def sample_points(npoints):
                 bothpoints.append(pcs)
                 bothnormals.append(normals)
             
-            pointnormals = torch.stack([torch.cat([pt, nt], dim=1) for pt, nt in zip(bothpoints, bothnormals)])
+            pointnormals = [torch.cat([pt, nt], dim=1) for pt, nt in zip(bothpoints, bothnormals)]
+
+            if assembly_points:
+                pc, normals, tris = helper_add_point_cloud(npoints, data.V, data.F, use_normals=True)
+                pointnormals.append(torch.cat([pc, normals], dim=1))
+                
+            pointnormals = torch.stack(pointnormals)
+
             allpoints.append(pointnormals)
         
         data.pcs = torch.stack(allpoints)

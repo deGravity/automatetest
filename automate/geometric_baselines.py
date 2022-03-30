@@ -17,7 +17,8 @@ class PointnetBaseline(MatePredictorBase):
             point_features: int = 6,
             pointnet_size: int = 1024,
             num_points: int = 100,
-            log_points: bool = False
+            log_points: bool = False,
+            assembly_points: bool = False
         ):
         super().__init__()
 
@@ -28,6 +29,8 @@ class PointnetBaseline(MatePredictorBase):
         
         self.pointnet_encoder = PointNetEncoder(K=point_features, layers=(64, 64, 64, 128, pointnet_size))
         out_size += 2 * pointnet_size
+        if assembly_points:
+            out_size += pointnet_size
 
         self.lin = LinearBlock(out_size, *linear_sizes, 4, last_linear=True)
         self.loss = torch.nn.CrossEntropyLoss() #TODO: weighting
@@ -94,19 +97,3 @@ class PointnetBaseline(MatePredictorBase):
         parser = pl.utilities.argparse.add_argparse_args(cls, parent_parser)
         return parser
 
-
-if __name__ == '__main__':
-    from transforms import *
-    from cached_dataset import SavedDataset
-    from torch_geometric.data import DataLoader
-    transforms = [fix_edge_sets, remap_type_labels]
-    dataset = SavedDataset('/projects/grail/jamesn8/projects/mechanical/Mechanical/data/dataset/simple_valid_dataset.txt', '/fast/jamesn8/assembly_data/assembly_torch2_fixsize/new_axes_100groups_and_mate_check/axis_data', prefix_path='/fast/jamesn8/assembly_data/assembly_torch2_fixsize/pspy_batches/batches/', exclusion_file=['/projects/grail/jamesn8/projects/mechanical/Mechanical/data/dataset/assemblies_with_discrepant_mcs.txt', '/fast/jamesn8/assembly_data/assembly_torch2_fixsize/test_add_mate_labels/stats.parquet'], transforms = transforms, debug=True)
-    dataloader = DataLoader(dataset, 1)
-
-    model = MatePredictor()
-
-    for i,data in enumerate(dataloader):
-        print(i)
-        #preds = model(data)
-        loss = model.training_step(data, i)
-        print(loss)
