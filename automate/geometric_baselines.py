@@ -25,10 +25,11 @@ class PointnetBaseline(MatePredictorBase):
         self.log_points = log_points
         self.num_points = num_points
         self.point_features = point_features
+        self.assembly_points = assembly_points
         out_size = 0
         
         self.pointnet_encoder = PointNetEncoder(K=point_features, layers=(64, 64, 64, 128, pointnet_size))
-        out_size += 2 * pointnet_size
+        out_size += pointnet_size
         if assembly_points:
             out_size += pointnet_size
 
@@ -39,7 +40,12 @@ class PointnetBaseline(MatePredictorBase):
     def forward(self, graph):
 
         _, pointnet_feats = self.pointnet_encoder(graph.pcs)
-        pointnet_feats = pointnet_feats.reshape(graph.pcs.shape[0], -1)
+        #pointnet_feats = pointnet_feats.reshape(graph.pcs.shape[0], -1)
+        if self.assembly_points:
+            assembly_feats = pointnet_feats[:,2,:]
+            pointnet_feats = torch.cat([pointnet_feats[:,:2,:].max(dim=-2)[0], assembly_feats], dim=1)
+        else:
+            pointnet_feats, _ = pointnet_feats.max(dim=-2)
         preds = self.lin(pointnet_feats)
         return preds
 
