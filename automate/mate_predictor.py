@@ -1,5 +1,5 @@
 import pytorch_lightning as pl
-from automate import SBGCN, LinearBlock, part_to_graph
+from automate import SBGCN, LinearBlock
 import torch
 from typing import Any, List, Optional, Tuple, Union
 from torch.nn import Module
@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import torchmetrics
 #from torch_geometric.nn import global_max_pool
 from .plot_confusion_matrix import plot_confusion_matrix
+from .pointnet_encoder import PointNetEncoder
 
 sub_mate_types = [
     'FASTENED',
@@ -15,21 +16,10 @@ sub_mate_types = [
     'CYLINDRICAL'
 ]
 
-class PointNetEncoder(Module):
-    def __init__(self, K=3, layers=(64, 64, 64, 128, 1024)):
-        super().__init__()
-        self.encode = LinearBlock(K, *layers)
-        self.K = K
-    def forward(self, pc):
-        pc2 = pc.reshape(-1, self.K)
-        x = self.encode(pc2)
-        x = x.reshape(pc.shape[0], pc.shape[1], pc.shape[2], -1)
-        x_p = torch.max(x, dim=2)[0]
-        return x, x_p
-
 class MatePredictor(pl.LightningModule):
     def __init__(
             self,
+            use_sbgcn: bool = True,
             sbgcn_size: int = 64,
             linear_sizes: List[int] = [512, 512],
             n_samples: int = 10,
@@ -45,11 +35,14 @@ class MatePredictor(pl.LightningModule):
         ):
         super().__init__()
         self.log_points = log_points
+        self.use_sbgcn = use_sbgcn
         #self.num_points = num_points
         self.pointnet = pointnet
         self.point_features = point_features
-        self.sbgcn = SBGCN(f_in, l_in, e_in, v_in, sbgcn_size, 0)
-        out_size = sbgcn_size * 2
+        out_size = 0
+        if self.use_sbgcn:
+            self.sbgcn = SBGCN(f_in, l_in, e_in, v_in, sbgcn_size, 0)
+            out_size += sbgcn_size * 2
         if self.pointnet:
             self.pointnet_encoder = PointNetEncoder(K=point_features, layers=(64, 64, 64, 128, pointnet_size))
             out_size += pointnet_size * 5
@@ -76,12 +69,15 @@ class MatePredictor(pl.LightningModule):
         self.axis_stats = binary_metrics.clone(prefix='val_axis/')
     
     def forward(self, graph):
-        x_t, x_p, _, _, _, _ = self.sbgcn(graph)
+        
+        pair_feats = torch.zeros((graph.part_edges.shape[1], 0)).type_as(graph.F)
 
-        feats_l = x_p[graph.part_edges[0]]
-        feats_r = x_p[graph.part_edges[1]]
+        if self.use_sbgcn:
+            x_t, x_p, _, _, _, _ = self.sbgcn(graph)
+            feats_l = x_p[graph.part_edges[0]]
+            feats_r = x_p[graph.part_edges[1]]
 
-        pair_feats = torch.cat([feats_l, feats_r], dim=1)
+            pair_feats = torch.cat([pair_feats, feats_l, feats_r], dim=1)
 
         if self.pointnet:
             _, pointnet_feats = self.pointnet_encoder(graph.motion_points)
