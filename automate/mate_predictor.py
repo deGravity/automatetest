@@ -69,7 +69,8 @@ class MatePredictor(MatePredictorBase):
 
         preds = self(data)
         error = self.loss(preds, target)
-        self.log('train_loss', error,batch_size=32)
+        self.log('train_loss/step', error, on_step=True, on_epoch=False)
+        self.log('train_loss/epoch', error, on_step=False, on_epoch=True)
         return error
 
     def validation_step(self, data, batch_idx):

@@ -46,13 +46,14 @@ class PointnetBaseline(MatePredictorBase):
 
         preds = self(data)
         error = self.loss(preds, target)
-        self.log('train_loss', error,batch_size=32)
+        self.log('train_loss/step', error, on_step=True, on_epoch=False)
+        self.log('train_loss/epoch', error, on_step=False, on_epoch=True)
         return error
 
     def validation_step(self, data, batch_idx):
         if batch_idx < 10 and self.log_points:
             
-            self.logger.experiment.add_mesh(f'mesh_vis_{batch_idx}', vertices = data.V.unsqueeze(0), faces = data.F.T.unsqueeze(0))
+            self.logger.experiment.add_mesh(f'mesh_vis_{data.ass.item()}', vertices = data.V.unsqueeze(0), faces = data.F.T.unsqueeze(0))
 
             pcs = data.pcs
             vertices = pcs[:,:,:3]
@@ -60,7 +61,7 @@ class PointnetBaseline(MatePredictorBase):
             col[:,:self.num_points,0] = 255
             col[:,self.num_points:,2] = 255
             
-            self.logger.experiment.add_mesh(f'points_vis_{batch_idx}', vertices=vertices, colors=col)
+            self.logger.experiment.add_mesh(f'points_vis_{data.ass.item()}', vertices=vertices, colors=col)
             #self.logger.experiment.add_mesh(f'mesh_pair_vis_{batch_idx}', vertices = data.V.unsqueeze(0), faces = data.debug_mesh_pairs[0][0].unsqueeze(0))
             #self.logger.experiment.add_mesh(f'full_mesh_vis_{batch_idx}', vertices=data.pc.unsqueeze(0))
 

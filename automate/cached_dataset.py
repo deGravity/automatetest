@@ -156,6 +156,7 @@ class SavedDataset(Dataset):
     def __getitem__(self, i):
         path = self.index[i]
         data = torch.load(path)
+        data.ass = int(os.path.split(path)[1].split('.')[0])
         
         close_pairs = []
         type_labels = []
