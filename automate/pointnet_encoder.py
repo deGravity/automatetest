@@ -1,5 +1,6 @@
 from torch.nn import Module
 from automate import LinearBlock
+import torch
 
 class PointNetEncoder(Module):
     def __init__(self, K=3, layers=(64, 64, 64, 128, 1024)):
