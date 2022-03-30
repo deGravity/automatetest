@@ -51,6 +51,7 @@ def run_model(default_args = dict()):
             file_args = json.load(argfile)
             for key in file_args:
                 default_args[key] = file_args[key]
+        default_args['name'] = os.path.splitext(os.path.split(args.argfile)[1])[0]
     if 'model_class' in default_args and args.model_class is None:
         args.model_class = default_args['model_class']
     if 'data_class' in default_args and args.data_class is None:
@@ -91,6 +92,7 @@ def run_model(default_args = dict()):
         default_hp_metric = False,
         version=args.resume_version
     )
+    logger.log_hyperparams(args)
 
     if not args.debug and args.resume_version is not None and \
             args.checkpoint_path is not None and args.resume_chackpoint is None:
