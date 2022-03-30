@@ -71,6 +71,29 @@ def remap_type_labels(data):
     data.mate_labels = remap_indices[data.mate_labels]
     return data
 
+
+def sample_points(npoints):
+    def _sample_points(data):
+        facet_to_part_id = data.flat_topos_to_graph_idx[0][data.face_to_flat_topos[1][data.F_to_faces[0]]]
+        allpoints = []
+        for i in range(data.part_edges.shape[1]):
+            pair = data.part_edges[:,i]
+            facets_both = [data.F[:,facet_to_part_id == p] for p in pair]
+            bothpoints = []
+            bothnormals = []
+            for p,facets in enumerate(facets_both):
+                pcs, normals, tris = helper_add_point_cloud(npoints, data.V, facets, use_normals=True)
+                bothpoints.append(pcs)
+                bothnormals.append(normals)
+            
+            pointnormals = torch.cat([torch.cat([pt, nt, torch.full((npoints, 1), p)], dim=1) for p, (pt, nt) in enumerate(zip(bothpoints, bothnormals))], dim=0)
+            allpoints.append(pointnormals)
+        
+        data.pcs = torch.stack(allpoints)
+        return data
+    return _sample_points
+
+
 def sample_motions(npoints, displacement, angle, debug=False):
     def _sample_motions(data):
         facet_to_part_id = data.flat_topos_to_graph_idx[0][data.face_to_flat_topos[1][data.F_to_faces[0]]]

@@ -51,10 +51,11 @@ class SavedDataModule(pl.LightningDataModule):
         persistent_workers: bool = True,
         debug_dataset: bool = False,
         corrective_transforms: bool = True,
-        pointnet: bool = False,
+        motion_pointnet: bool = False,
         num_points: int = 100,
         motion_displacement: float = 0.05,
-        motion_angle: float = math.pi / 16
+        motion_angle: float = math.pi / 16,
+        pair_pointnet: bool = False
     ):
         super().__init__()
         self.path = torch_path
@@ -70,8 +71,10 @@ class SavedDataModule(pl.LightningDataModule):
         self.transforms = []
         if corrective_transforms:
             self.transforms += [fix_edge_sets, remap_type_labels]
-        if pointnet:
+        if motion_pointnet:
             self.transforms += [sample_motions(num_points, motion_displacement, motion_angle)]
+        if pair_pointnet:
+            self.transforms += [sample_points(num_points)]
     
     def setup(self, **kwargs):
         #todo: transforms
