@@ -103,10 +103,10 @@ OCCTEdge::OCCTEdge(const TopoDS_Shape& shape, const TopTools_ListOfShape& faces)
         function = CurveFunction::PARABOLA;
         break;
     case GeomAbs_BezierCurve:
-        function = CurveFunction::BEZIERCURVE;
+        function = CurveFunction::BCURVE;
         break;
     case GeomAbs_BSplineCurve:
-        function = CurveFunction::BSPLINECURVE;
+        function = CurveFunction::BCURVE;
         break;
     case GeomAbs_OffsetCurve:
         function = CurveFunction::OFFSETCURVE;

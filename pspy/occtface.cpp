@@ -78,7 +78,7 @@ void OCCTFace::init_parametric_function() {
         init_spun();
         break;
     case GeomAbs_OffsetSurface:
-        function = SurfaceFunction::OFFSETSURFACE;
+        function = SurfaceFunction::OFFSET;
         break;
     case GeomAbs_OtherSurface:
         function = SurfaceFunction::OTHERSURFACE;
