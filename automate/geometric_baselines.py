@@ -14,7 +14,7 @@ class PointnetBaseline(MatePredictorBase):
     def __init__(
             self,
             linear_sizes: List[int] = [512, 512],
-            point_features: int = 7,
+            point_features: int = 6,
             pointnet_size: int = 1024,
             num_points: int = 100,
             log_points: bool = False
@@ -27,7 +27,7 @@ class PointnetBaseline(MatePredictorBase):
         out_size = 0
         
         self.pointnet_encoder = PointNetEncoder(K=point_features, layers=(64, 64, 64, 128, pointnet_size))
-        out_size += pointnet_size
+        out_size += 2 * pointnet_size
 
         self.lin = LinearBlock(out_size, *linear_sizes, 4, last_linear=True)
         self.loss = torch.nn.CrossEntropyLoss() #TODO: weighting
@@ -36,7 +36,7 @@ class PointnetBaseline(MatePredictorBase):
     def forward(self, graph):
 
         _, pointnet_feats = self.pointnet_encoder(graph.pcs)
-
+        pointnet_feats = pointnet_feats.reshape(graph.pcs.shape[0], -1)
         preds = self.lin(pointnet_feats)
         return preds
 

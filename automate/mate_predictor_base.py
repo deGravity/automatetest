@@ -57,10 +57,10 @@ class MatePredictorBase(pl.LightningModule):
     
     def get_callbacks(self):
         callbacks = [
-            pl.callbacks.ModelCheckpoint(save_last=True),
-            pl.callbacks.ModelCheckpoint(save_top_k=-1, every_n_epochs=5),
+            pl.callbacks.ModelCheckpoint(monitor="val_type_accuracy", save_top_k=4, filename="{epoch}-{val_type_accuracy:.6f}", mode="max"),
             pl.callbacks.ModelCheckpoint(monitor="val_loss", save_top_k=4, filename="{epoch}-{val_loss:.6f}", mode="min"),
-            pl.callbacks.ModelCheckpoint(monitor="val_type_accuracy", save_top_k=4, filename="{epoch}-{val_type_accuracy:.6f}", mode="max")
+            pl.callbacks.ModelCheckpoint(save_top_k=-1, every_n_epochs=5),
+            pl.callbacks.ModelCheckpoint(save_last=True),
         ]
         return callbacks
     

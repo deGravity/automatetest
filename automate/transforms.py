@@ -86,7 +86,7 @@ def sample_points(npoints):
                 bothpoints.append(pcs)
                 bothnormals.append(normals)
             
-            pointnormals = torch.cat([torch.cat([pt, nt, torch.full((npoints, 1), p)], dim=1) for p, (pt, nt) in enumerate(zip(bothpoints, bothnormals))], dim=0)
+            pointnormals = torch.stack([torch.cat([pt, nt], dim=1) for pt, nt in zip(bothpoints, bothnormals)])
             allpoints.append(pointnormals)
         
         data.pcs = torch.stack(allpoints)
