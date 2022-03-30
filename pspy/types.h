@@ -31,12 +31,8 @@ enum class SurfaceFunction {
     BLENDSF,
     MESH,
     FSURF,
-    BEZIERSURFACE,
-    BSPLINESURFACE,
     SURFACEOFEXTRUSION,
-    OFFSETSURFACE,
     OTHERSURFACE,
-    SURFACEOFREVOLUTION,
     NONE // Faces sometimes have no surface
 };
 
@@ -54,8 +50,6 @@ enum class CurveFunction {
     PLINE,
     HYPERBOLA,
     PARABOLA,
-    BEZIERCURVE,
-    BSPLINECURVE,
     OFFSETCURVE,
     OTHERCURVE,
     NONE // Edges sometimes have no curve

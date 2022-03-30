@@ -46,23 +46,11 @@ std::string face_repr(const Face& f) {
 	case SurfaceFunction::FSURF:
 		message += "FSURF";
 		break;
-	case SurfaceFunction::BEZIERSURFACE:
-		message += "BEZIERSURFACE";
-		break;
-	case SurfaceFunction::BSPLINESURFACE:
-		message += "BSPLINESURFACE";
-		break;
 	case SurfaceFunction::SURFACEOFEXTRUSION:
 		message += "SURFACEOFEXTRUSION";
 		break;
-	case SurfaceFunction::OFFSETSURFACE:
-		message += "OFFSETSURFACE";
-		break;
 	case SurfaceFunction::OTHERSURFACE:
 		message += "OTHERSURFACE";
-		break;
-	case SurfaceFunction::SURFACEOFREVOLUTION:
-		message += "SURFACEOFREVOLUTION";
 		break;
 	}
 	for (int i = 0; i < f.parameters.size(); ++i) {
@@ -151,12 +139,6 @@ std::string edge_repr(const Edge& e) {
 		break;
 	case CurveFunction::PARABOLA:
 		message += "PARABOLA(";
-		break;
-	case CurveFunction::BEZIERCURVE:
-		message += "BEZIERCURVE(";
-		break;
-	case CurveFunction::BSPLINECURVE:
-		message += "BSPLINECURVE(";
 		break;
 	case CurveFunction::OFFSETCURVE:
 		message += "OFFSETCURVE(";
@@ -394,12 +376,8 @@ PYBIND11_MODULE(pspy_cpp, m) {
 		.value("BLENDSF", SurfaceFunction::BLENDSF)
 		.value("MESH", SurfaceFunction::MESH)
 		.value("FSURF", SurfaceFunction::FSURF)
-		.value("BEZIERSURFACE", SurfaceFunction::BEZIERSURFACE)
-		.value("BSPLINESURFACE", SurfaceFunction::BSPLINESURFACE)
 		.value("SURFACEOFEXTRUSION", SurfaceFunction::SURFACEOFEXTRUSION)
-		.value("OFFSETSURFACE", SurfaceFunction::OFFSETSURFACE)
 		.value("OTHERSURFACE", SurfaceFunction::OTHERSURFACE)
-		.value("SURFACEOFREVOLUTION", SurfaceFunction::SURFACEOFREVOLUTION)
 		.value("NONE", SurfaceFunction::NONE);
 
 	py::enum_<CurveFunction>(m, "CurveFunction")
@@ -415,8 +393,6 @@ PYBIND11_MODULE(pspy_cpp, m) {
 		.value("PLINE", CurveFunction::PLINE)
 		.value("HYPERBOLA", CurveFunction::HYPERBOLA)
 		.value("PARABOLA", CurveFunction::PARABOLA)
-		.value("BEZIERCURVE", CurveFunction::BEZIERCURVE)
-		.value("BSPLINECURVE", CurveFunction::BSPLINECURVE)
 		.value("OFFSETCURVE", CurveFunction::OFFSETCURVE)
 		.value("OTHERCURVE", CurveFunction::OTHERCURVE)
 		.value("NONE", CurveFunction::NONE);

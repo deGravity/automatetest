@@ -94,7 +94,7 @@ struct OCCTFace: public Face {
     void init_cone();
     void init_sphere();
     void init_torus();
-    void init_surface_of_revolution();
+    void init_spun();
 
     std::vector<Inference> get_inferences() override;
 

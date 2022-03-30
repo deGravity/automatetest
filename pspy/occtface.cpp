@@ -66,16 +66,16 @@ void OCCTFace::init_parametric_function() {
         init_torus();
         break;
     case GeomAbs_BezierSurface:
-        function = SurfaceFunction::BEZIERSURFACE;
+        function = SurfaceFunction::BSURF;
         break;
     case GeomAbs_BSplineSurface:
-        function = SurfaceFunction::BSPLINESURFACE;
+        function = SurfaceFunction::BSURF;
         break;
     case GeomAbs_SurfaceOfExtrusion:
         function = SurfaceFunction::SURFACEOFEXTRUSION;
         break;
     case GeomAbs_SurfaceOfRevolution:
-        init_surface_of_revolution();
+        init_spun();
         break;
     case GeomAbs_OffsetSurface:
         function = SurfaceFunction::OFFSETSURFACE;
@@ -221,9 +221,9 @@ void OCCTFace::init_torus() {
     parameters.push_back(torus.MinorRadius());
 }
 
-void OCCTFace::init_surface_of_revolution() {
+void OCCTFace::init_spun() {
     gp_Ax1 axis = _surf.AxeOfRevolution();
-    function = SurfaceFunction::SURFACEOFREVOLUTION;
+    function = SurfaceFunction::SPUN;
     parameters.push_back(axis.Location().X());
     parameters.push_back(axis.Location().Y());
     parameters.push_back(axis.Location().Z());
@@ -251,7 +251,7 @@ std::vector<Inference> OCCTFace::get_inferences()
     case SurfaceFunction::TORUS:
         add_inferences_axial(inferences);
         break;
-    case SurfaceFunction::SURFACEOFREVOLUTION:
+    case SurfaceFunction::SPUN:
         add_inferences_axial(inferences);
         break;
     default:
