@@ -21,20 +21,24 @@ class PointnetBaseline(MatePredictorBase):
             assembly_points: bool = False
         ):
         super().__init__()
-
-        self.log_points = log_points
-        self.num_points = num_points
+        self.linear_sizes = linear_sizes
         self.point_features = point_features
+        self.pointnet_size = pointnet_size
+        self.num_points = num_points
+        self.log_points = log_points
         self.assembly_points = assembly_points
+
         out_size = 0
         
-        self.pointnet_encoder = PointNetEncoder(K=point_features, layers=(64, 64, 64, 128, pointnet_size))
-        out_size += pointnet_size
-        if assembly_points:
-            out_size += pointnet_size
+        self.pointnet_encoder = PointNetEncoder(K=self.point_features, layers=(64, 64, 64, 128, self.pointnet_size))
+        out_size += self.pointnet_size
+        if self.assembly_points:
+            out_size += self.pointnet_size
 
-        self.lin = LinearBlock(out_size, *linear_sizes, 4, last_linear=True)
+        self.lin = LinearBlock(out_size, *self.linear_sizes, 4, last_linear=True)
         self.loss = torch.nn.CrossEntropyLoss() #TODO: weighting
+
+        self.save_hyperparameters()
 
     
     def forward(self, graph):

@@ -1,5 +1,5 @@
 import pytorch_lightning as pl
-from automate import SBGCN, LinearBlock
+from automate import SBGCN, LinearBlock, sbgcn
 import torch
 from typing import Any, List, Optional, Tuple, Union
 from torch.nn import Module
@@ -33,19 +33,31 @@ class MatePredictor(MatePredictorBase):
         super().__init__()
         self.log_points = log_points
         self.use_sbgcn = use_sbgcn
-        #self.num_points = num_points
-        self.pointnet = motion_pointnet
+        self.sbgcn_size = sbgcn_size
+        self.linear_sizes = linear_sizes
+        self.f_in = f_in
+        self.l_in = l_in
+        self.e_in = e_in
+        self.v_in = v_in
+        self.motion_pointnet = motion_pointnet
         self.point_features = point_features
+        self.pointnet_size = pointnet_size
+        self.use_uvnet = use_uvnet
+
+
+        #self.num_points = num_points
         out_size = 0
         if self.use_sbgcn:
-            self.sbgcn = SBGCN(f_in, l_in, e_in, v_in, sbgcn_size, 0, use_uvnet_features=use_uvnet, crv_emb_dim=crv_emb_dim, srf_emb_dim=srf_emb_dim)
-            out_size += sbgcn_size
-        if self.pointnet:
+            self.sbgcn = SBGCN(self.f_in, self.l_in, self.e_in, self.v_in, self.sbgcn_size, 0, use_uvnet_features=self.use_uvnet, crv_emb_dim=self.crv_emb_dim, srf_emb_dim=self.srf_emb_dim)
+            out_size += self.sbgcn_size
+        if self.motion_pointnet:
             self.pointnet_encoder = PointNetEncoder(K=point_features, layers=(64, 64, 64, 128, pointnet_size))
-            out_size += pointnet_size * 5
+            out_size += self.pointnet_size * 5
 
-        self.lin = LinearBlock(out_size, *linear_sizes, 4, last_linear=True)
+        self.lin = LinearBlock(out_size, *self.linear_sizes, 4, last_linear=True)
         self.loss = torch.nn.CrossEntropyLoss() #TODO: weighting
+
+        self.save_hyperparameters()
 
     
     def forward(self, graph):
@@ -59,7 +71,7 @@ class MatePredictor(MatePredictorBase):
 
             pair_feats = torch.maximum(feats_l, feats_r)
 
-        if self.pointnet:
+        if self.motion_pointnet:
             _, pointnet_feats = self.pointnet_encoder(graph.motion_points)
             pair_feats = torch.cat([pair_feats, pointnet_feats.reshape(pair_feats.shape[0], -1)], dim=1)
 
@@ -77,7 +89,7 @@ class MatePredictor(MatePredictorBase):
         return error
 
     def validation_step(self, data, batch_idx):
-        if batch_idx < 10 and self.log_points and self.pointnet:
+        if batch_idx < 10 and self.log_points and self.motion_pointnet:
             
             self.logger.experiment.add_mesh(f'mesh_vis_{batch_idx}', vertices = data.V.unsqueeze(0), faces = data.F.T.unsqueeze(0))
 
