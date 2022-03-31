@@ -39,7 +39,7 @@ class MatePredictor(MatePredictorBase):
         out_size = 0
         if self.use_sbgcn:
             self.sbgcn = SBGCN(f_in, l_in, e_in, v_in, sbgcn_size, 0, use_uvnet_features=use_uvnet, crv_emb_dim=crv_emb_dim, srf_emb_dim=srf_emb_dim)
-            out_size += sbgcn_size * 2
+            out_size += sbgcn_size
         if self.pointnet:
             self.pointnet_encoder = PointNetEncoder(K=point_features, layers=(64, 64, 64, 128, pointnet_size))
             out_size += pointnet_size * 5
@@ -57,7 +57,7 @@ class MatePredictor(MatePredictorBase):
             feats_l = x_p[graph.part_edges[0]]
             feats_r = x_p[graph.part_edges[1]]
 
-            pair_feats = torch.cat([pair_feats, feats_l, feats_r], dim=1)
+            pair_feats = torch.maximum(feats_l, feats_r)
 
         if self.pointnet:
             _, pointnet_feats = self.pointnet_encoder(graph.motion_points)
