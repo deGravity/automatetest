@@ -28,7 +28,8 @@ class MatePredictor(MatePredictorBase):
             crv_emb_dim: int = 64,
             srf_emb_dim: int = 64,
             #num_points: int = 100,
-            log_points: bool = False
+            log_points: bool = False,
+            pool_features: bool = False
         ):
         super().__init__()
         self.log_points = log_points
@@ -43,13 +44,16 @@ class MatePredictor(MatePredictorBase):
         self.point_features = point_features
         self.pointnet_size = pointnet_size
         self.use_uvnet = use_uvnet
+        self.crv_emb_dim = crv_emb_dim
+        self.srf_emb_dim = srf_emb_dim
+        self.pool_features = pool_features
 
 
         #self.num_points = num_points
         out_size = 0
         if self.use_sbgcn:
             self.sbgcn = SBGCN(self.f_in, self.l_in, self.e_in, self.v_in, self.sbgcn_size, 0, use_uvnet_features=self.use_uvnet, crv_emb_dim=self.crv_emb_dim, srf_emb_dim=self.srf_emb_dim)
-            out_size += self.sbgcn_size
+            out_size += self.sbgcn_size if self.pool_features else self.sbgcn_size * 2
         if self.motion_pointnet:
             self.pointnet_encoder = PointNetEncoder(K=point_features, layers=(64, 64, 64, 128, pointnet_size))
             out_size += self.pointnet_size * 5
@@ -69,7 +73,10 @@ class MatePredictor(MatePredictorBase):
             feats_l = x_p[graph.part_edges[0]]
             feats_r = x_p[graph.part_edges[1]]
 
-            pair_feats = torch.maximum(feats_l, feats_r)
+            if self.pool_features:
+                pair_feats = torch.maximum(feats_l, feats_r)
+            else:
+                pair_feats = torch.cat([feats_l, feats_r], dim=1)
 
         if self.motion_pointnet:
             _, pointnet_feats = self.pointnet_encoder(graph.motion_points)

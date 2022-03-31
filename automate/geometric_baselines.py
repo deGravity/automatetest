@@ -18,7 +18,8 @@ class PointnetBaseline(MatePredictorBase):
             pointnet_size: int = 1024,
             num_points: int = 100,
             log_points: bool = False,
-            assembly_points: bool = False
+            assembly_points: bool = False,
+            pool_features: bool = False
         ):
         super().__init__()
         self.linear_sizes = linear_sizes
@@ -27,11 +28,12 @@ class PointnetBaseline(MatePredictorBase):
         self.num_points = num_points
         self.log_points = log_points
         self.assembly_points = assembly_points
+        self.pool_features = pool_features
 
         out_size = 0
         
         self.pointnet_encoder = PointNetEncoder(K=self.point_features, layers=(64, 64, 64, 128, self.pointnet_size))
-        out_size += self.pointnet_size
+        out_size += self.pointnet_size if self.pool_features else self.pointnet_size * 2
         if self.assembly_points:
             out_size += self.pointnet_size
 
@@ -44,12 +46,15 @@ class PointnetBaseline(MatePredictorBase):
     def forward(self, graph):
 
         _, pointnet_feats = self.pointnet_encoder(graph.pcs)
-        #pointnet_feats = pointnet_feats.reshape(graph.pcs.shape[0], -1)
-        if self.assembly_points:
-            assembly_feats = pointnet_feats[:,2,:]
-            pointnet_feats = torch.cat([pointnet_feats[:,:2,:].max(dim=-2)[0], assembly_feats], dim=1)
+        
+        if self.pool_features:
+            if self.assembly_points:
+                assembly_feats = pointnet_feats[:,2,:]
+                pointnet_feats = torch.cat([pointnet_feats[:,:2,:].max(dim=-2)[0], assembly_feats], dim=1)
+            else:
+                pointnet_feats, _ = pointnet_feats.max(dim=-2)
         else:
-            pointnet_feats, _ = pointnet_feats.max(dim=-2)
+            pointnet_feats = pointnet_feats.reshape(graph.pcs.shape[0], -1)
         preds = self.lin(pointnet_feats)
         return preds
 
