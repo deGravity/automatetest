@@ -20,19 +20,23 @@ class SBGCN(torch.nn.Module):
         out_width,
         k,
         use_uvnet_features=False,
+        crv_in_dim=[0, 1, 2, 3, 4, 5],
+        srf_in_dim=[0, 1, 2, 3, 4, 5, 8],
         crv_emb_dim=64,
         srf_emb_dim=64,
     ):
         super().__init__()
         self.use_uvnet_features = use_uvnet_features
+        self.crv_in_dim = crv_in_dim
+        self.srf_in_dim = srf_in_dim
         if use_uvnet_features:
             self.crv_emb_dim = crv_emb_dim
             self.srf_emb_dim = srf_emb_dim
             self.curv_encoder = UVNetCurveEncoder(
-                in_channels=7, output_dims=crv_emb_dim
+                in_channels=len(crv_in_dim), output_dims=crv_emb_dim
             )
             self.surf_encoder = UVNetSurfaceEncoder(
-                in_channels=9, output_dims=srf_emb_dim
+                in_channels=len(srf_in_dim), output_dims=srf_emb_dim
             )
             f_in_width += srf_emb_dim
             e_in_width += crv_emb_dim
@@ -64,8 +68,8 @@ class SBGCN(torch.nn.Module):
 
         # Compute uvnet features
         if self.use_uvnet_features:
-            hidden_srf_feat = self.surf_encoder(data.face_samples)
-            hidden_crv_feat = self.curv_encoder(data.edge_samples)
+            hidden_srf_feat = self.surf_encoder(data.face_samples[:,self.srf_in_dim,:,:])
+            hidden_crv_feat = self.curv_encoder(data.edge_samples[:,self.crv_in_dim,:])
             x_f = torch.cat((x_f, hidden_srf_feat), dim=1)
             x_e = torch.cat((x_e, hidden_crv_feat), dim=1)
 
