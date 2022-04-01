@@ -206,7 +206,7 @@ class SavedDataset(Dataset):
 
 if __name__ == '__main__':
     transforms = [fix_edge_sets, remap_type_labels, sample_motions(100, .05, math.pi/16)]
-    dataset = SavedDataset('/fast/jamesn8/assembly_data/assembly_torch2_fixsize/finalized_dataset_fixed/train.txt', '/fast/jamesn8/assembly_data/assembly_torch2_fixsize/new_axes_100groups_and_mate_check/axis_data', prefix_path='/fast/jamesn8/assembly_data/assembly_torch2_fixsize/pspy_batches/batches/', exclusion_file=['/projects/grail/jamesn8/projects/mechanical/Mechanical/data/dataset/assemblies_with_discrepant_mcs.txt', '/fast/jamesn8/assembly_data/assembly_torch2_fixsize/test_add_mate_labels/stats.parquet'], transforms = transforms, debug=True)
+    dataset = SavedDataset('/fast/jamesn8/assembly_data/assembly_torch2_fixsize/full_pipeline/train.txt', '/fast/jamesn8/assembly_data/assembly_torch2_fixsize/full_pipeline/axis_data', prefix_path='/fast/jamesn8/assembly_data/assembly_torch2_fixsize/full_pipeline/batches/', exclusion_file=['/projects/grail/jamesn8/projects/mechanical/Mechanical/data/dataset/assemblies_with_discrepant_mcs.txt', '/fast/jamesn8/assembly_data/assembly_torch2_fixsize/test_add_mate_labels/stats.parquet'], transforms = transforms, debug=True)
     for i in range(100):
         print(i,dataset.index[i])
         data = dataset[i]

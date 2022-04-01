@@ -8,6 +8,7 @@ import torchmetrics
 #from torch_geometric.nn import global_max_pool
 from .pointnet_encoder import PointNetEncoder
 from .mate_predictor_base import MatePredictorBase
+from torch_geometric.nn import GATv2Conv
 
 
 class MatePredictor(MatePredictorBase):
@@ -29,7 +30,8 @@ class MatePredictor(MatePredictorBase):
             srf_emb_dim: int = 64,
             #num_points: int = 100,
             log_points: bool = False,
-            pool_features: bool = False
+            pool_features: bool = False,
+            assembly_conv: bool = False
         ):
         super().__init__()
         self.log_points = log_points
@@ -47,6 +49,7 @@ class MatePredictor(MatePredictorBase):
         self.crv_emb_dim = crv_emb_dim
         self.srf_emb_dim = srf_emb_dim
         self.pool_features = pool_features
+        self.assembly_conv = assembly_conv
 
 
         #self.num_points = num_points
@@ -57,6 +60,8 @@ class MatePredictor(MatePredictorBase):
         if self.motion_pointnet:
             self.pointnet_encoder = PointNetEncoder(K=point_features, layers=(64, 64, 64, 128, pointnet_size))
             out_size += self.pointnet_size * 5
+        if self.assembly_conv:
+            self.gcn = GATv2Conv(out_size, out_size, edge_dim=out_size)
 
         self.lin = LinearBlock(out_size, *self.linear_sizes, 4, last_linear=True)
         self.loss = torch.nn.CrossEntropyLoss() #TODO: weighting
@@ -81,6 +86,9 @@ class MatePredictor(MatePredictorBase):
         if self.motion_pointnet:
             _, pointnet_feats = self.pointnet_encoder(graph.motion_points)
             pair_feats = torch.cat([pair_feats, pointnet_feats.reshape(pair_feats.shape[0], -1)], dim=1)
+        
+        if self.assembly_conv:
+            pair_feats = self.gcn(x_p, graph.part_edges, pair_feats)
 
         preds = self.lin(pair_feats)
         return preds
