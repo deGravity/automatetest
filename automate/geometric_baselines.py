@@ -19,7 +19,8 @@ class PointnetBaseline(MatePredictorBase):
             num_points: int = 100,
             log_points: bool = False,
             assembly_points: bool = False,
-            pool_features: bool = False
+            pool_features: bool = False,
+            combine_points: bool = False,
         ):
         super().__init__()
         self.linear_sizes = linear_sizes
@@ -29,11 +30,12 @@ class PointnetBaseline(MatePredictorBase):
         self.log_points = log_points
         self.assembly_points = assembly_points
         self.pool_features = pool_features
+        self.combine_points = combine_points
 
         out_size = 0
         
         self.pointnet_encoder = PointNetEncoder(K=self.point_features, layers=(64, 64, 64, 128, self.pointnet_size))
-        out_size += self.pointnet_size if self.pool_features else self.pointnet_size * 2
+        out_size += self.pointnet_size if self.pool_features or self.combine_points else self.pointnet_size * 2
         if self.assembly_points:
             out_size += self.pointnet_size
 

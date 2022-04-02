@@ -56,7 +56,9 @@ class SavedDataModule(pl.LightningDataModule):
         motion_displacement: float = 0.05,
         motion_angle: float = math.pi / 16,
         pair_pointnet: bool = False,
-        assembly_points: bool = False
+        assembly_points: bool = False,
+        combine_points: bool = False,
+        normalize_points: bool = False
     ):
         super().__init__()
         self.path = torch_path
@@ -75,7 +77,7 @@ class SavedDataModule(pl.LightningDataModule):
         if motion_pointnet:
             self.transforms += [sample_motions(num_points, motion_displacement, motion_angle)]
         if pair_pointnet:
-            self.transforms += [sample_points(num_points, assembly_points=assembly_points)]
+            self.transforms += [sample_points(num_points, assembly_points=assembly_points, normalize=normalize_points, combined=combine_points)]
     
     def setup(self, **kwargs):
         #todo: transforms

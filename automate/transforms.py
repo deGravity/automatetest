@@ -72,7 +72,7 @@ def remap_type_labels(data):
     return data
 
 
-def sample_points(npoints, assembly_points):
+def sample_points(npoints, assembly_points, normalize, combined):
     def _sample_points(data):
         facet_to_part_id = data.flat_topos_to_graph_idx[0][data.face_to_flat_topos[1][data.F_to_faces[0]]]
         allpoints = []
@@ -86,13 +86,32 @@ def sample_points(npoints, assembly_points):
                 bothpoints.append(pcs)
                 bothnormals.append(normals)
             
+
+            if normalize:
+                minPt = torch.minimum(bothpoints[0].min(0)[0], bothpoints[1].min(0)[0])
+                maxPt = torch.maximum(bothpoints[0].max(0)[0], bothpoints[1].max(0)[0])
+                dims = maxPt - minPt
+                maxDim = dims.max()
+                median = (maxPt + minPt) / 2
+                bothpoints[0] -= median
+                bothpoints[0] /= maxDim
+                bothpoints[1] -= median
+                bothpoints[1] /= maxDim
+
             pointnormals = [torch.cat([pt, nt], dim=1) for pt, nt in zip(bothpoints, bothnormals)]
+
+            if combined:
+                pointnormals = torch.cat(pointnormals, dim=0)
+            else:
+                pointnormals = torch.stack(pointnormals)
 
             if assembly_points:
                 pc, normals, tris = helper_add_point_cloud(npoints, data.V, data.F, use_normals=True)
-                pointnormals.append(torch.cat([pc, normals], dim=1))
-                
-            pointnormals = torch.stack(pointnormals)
+                newpc = torch.cat([pc, normals], dim=1)
+                if combined:
+                    pointnormals = torch.stack([pointnormals, newpc])
+                else:
+                    pointnormals = torch.cat([pointnormals, newpc.unsqueeze(0)], dim=0)
 
             allpoints.append(pointnormals)
         
