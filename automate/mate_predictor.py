@@ -32,7 +32,7 @@ class MatePredictor(MatePredictorBase):
             #num_points: int = 100,
             log_points: bool = False,
             pool_features: bool = False,
-            assembly_conv: bool = False
+            assembly_conv: bool = False,
         ):
         super().__init__()
         self.log_points = log_points

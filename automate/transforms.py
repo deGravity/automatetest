@@ -98,11 +98,13 @@ def sample_points(npoints, assembly_points, normalize, combined):
                 bothpoints[1] -= median
                 bothpoints[1] /= maxDim
 
-            pointnormals = [torch.cat([pt, nt], dim=1) for pt, nt in zip(bothpoints, bothnormals)]
+            
 
             if combined:
+                pointnormals = [torch.cat([pt, nt, torch.full((npoints, 1), p)], dim=1) for p,(pt, nt) in enumerate(zip(bothpoints, bothnormals))]
                 pointnormals = torch.cat(pointnormals, dim=0)
             else:
+                pointnormals = [torch.cat([pt, nt], dim=1) for pt, nt in zip(bothpoints, bothnormals)]
                 pointnormals = torch.stack(pointnormals)
 
             if assembly_points:
