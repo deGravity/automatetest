@@ -62,6 +62,7 @@ def compose(*fs):
 
 def fix_edge_sets(data):
     data.__edge_sets__['flat_topos_to_graph_idx'] = ['graph_idx']
+    data.__edge_sets__['mcf_to_graph_idx'] = ['graph_idx']
     return data
 
 
@@ -75,6 +76,10 @@ def remap_type_labels(data):
 def sample_points(npoints, assembly_points, normalize, combined):
     def _sample_points(data):
         facet_to_part_id = data.flat_topos_to_graph_idx[0][data.face_to_flat_topos[1][data.F_to_faces[0]]]
+        if assembly_points:
+            assembly_pc, assembly_normals, assembly_tris = helper_add_point_cloud(npoints*2 if combined else npoints, data.V, data.F, use_normals=True)
+            point_to_part_idx = facet_to_part_id[assembly_tris]
+
         allpoints = []
         for i in range(data.part_edges.shape[1]):
             pair = data.part_edges[:,i]
@@ -108,12 +113,15 @@ def sample_points(npoints, assembly_points, normalize, combined):
                 pointnormals = torch.stack(pointnormals)
 
             if assembly_points:
-                pc, normals, tris = helper_add_point_cloud(npoints, data.V, data.F, use_normals=True)
-                newpc = torch.cat([pc, normals], dim=1)
+            
                 if combined:
-                    pointnormals = torch.stack([pointnormals, newpc])
+                    assembly_feats = torch.cat([assembly_pc, assembly_normals, torch.full((npoints*2, 1), -1, dtype=torch.float)], dim=1)
+                    assembly_feats[point_to_part_idx == pair[0],6] = 0 
+                    assembly_feats[point_to_part_idx == pair[1],6] = 1 
+                    pointnormals = torch.stack([pointnormals, assembly_feats], dim=0)
                 else:
-                    pointnormals = torch.cat([pointnormals, newpc.unsqueeze(0)], dim=0)
+                    assembly_feats = torch.cat([assembly_pc, assembly_normals], dim=1)
+                    pointnormals = torch.stack([pointnormals, assembly_feats], dim=0)
 
             allpoints.append(pointnormals)
         

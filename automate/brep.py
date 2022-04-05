@@ -405,10 +405,10 @@ def flatbatch(datalist):
     data.__edge_sets__ = datalist[0].__edge_sets__
     if hasattr(batch, 'mcfs_batch'):
         data.mcf_to_graph_idx = batch.mcfs_batch.expand((1, batch.mcfs.shape[0]))
-        data.__edge_sets__['mcf_to_graph_idx'] = len(datalist)
+        data.__edge_sets__['mcf_to_graph_idx'] = ['graph_idx']
     data.__num_nodes__ = batch.num_nodes
     data.__node_sets__ = datalist[0].__node_sets__
-    data.__edge_sets__['flat_topos_to_graph_idx'] = len(datalist)
+    data.__edge_sets__['flat_topos_to_graph_idx'] = ['graph_idx']
     return data
 
 
