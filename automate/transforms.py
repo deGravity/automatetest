@@ -81,6 +81,7 @@ def sample_points(npoints, assembly_points, normalize, combined):
             point_to_part_idx = facet_to_part_id[assembly_tris]
 
         allpoints = []
+        all_assembly_points = []
         for i in range(data.part_edges.shape[1]):
             pair = data.part_edges[:,i]
             facets_both = [data.F[:,facet_to_part_id == p] for p in pair]
@@ -114,18 +115,17 @@ def sample_points(npoints, assembly_points, normalize, combined):
 
             if assembly_points:
             
-                if combined:
-                    assembly_feats = torch.cat([assembly_pc, assembly_normals, torch.full((npoints*2, 1), -1, dtype=torch.float)], dim=1)
-                    assembly_feats[point_to_part_idx == pair[0],6] = 0 
-                    assembly_feats[point_to_part_idx == pair[1],6] = 1 
-                    pointnormals = torch.stack([pointnormals, assembly_feats], dim=0)
-                else:
-                    assembly_feats = torch.cat([assembly_pc, assembly_normals], dim=1)
-                    pointnormals = torch.stack([pointnormals, assembly_feats], dim=0)
+                assembly_feats = torch.cat([assembly_pc, assembly_normals, torch.full((npoints*2, 1), -1, dtype=torch.float)], dim=1)
+                assembly_feats[point_to_part_idx == pair[0],6] = 0
+                assembly_feats[point_to_part_idx == pair[1],6] = 1
+                all_assembly_points.append(assembly_feats)
+                
 
             allpoints.append(pointnormals)
         
         data.pcs = torch.stack(allpoints)
+        if assembly_points:
+            data.global_pcs = torch.stack(all_assembly_points)
         return data
     return _sample_points
 

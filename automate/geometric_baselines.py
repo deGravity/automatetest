@@ -16,6 +16,7 @@ class PointnetBaseline(MatePredictorBase):
             linear_sizes: List[int] = [512, 512],
             point_features: int = 6,
             pointnet_size: int = 1024,
+            assembly_pointnet_size: int = 1024,
             num_points: int = 100,
             log_points: bool = False,
             assembly_points: bool = False,
@@ -26,6 +27,7 @@ class PointnetBaseline(MatePredictorBase):
         self.linear_sizes = linear_sizes
         self.point_features = point_features
         self.pointnet_size = pointnet_size
+        self.assembly_pointnet_size = assembly_pointnet_size
         self.num_points = num_points
         self.log_points = log_points
         self.assembly_points = assembly_points
@@ -37,7 +39,8 @@ class PointnetBaseline(MatePredictorBase):
         self.pointnet_encoder = PointNetEncoder(K=self.point_features, layers=(64, 64, 64, 128, self.pointnet_size))
         out_size += self.pointnet_size if self.pool_features or self.combine_points else self.pointnet_size * 2
         if self.assembly_points:
-            out_size += self.pointnet_size
+            self.assembly_pointnet_encoder = PointNetEncoder(K=self.assembly_point_features, layers=(64, 64, 64, 128, self.assembly_pointnet_size))
+            out_size += self.assembly_pointnet_size
 
         self.lin = LinearBlock(out_size, *self.linear_sizes, 4, last_linear=True)
         self.loss = torch.nn.CrossEntropyLoss() #TODO: weighting
@@ -50,13 +53,14 @@ class PointnetBaseline(MatePredictorBase):
         _, pointnet_feats = self.pointnet_encoder(graph.pcs)
         
         if self.pool_features:
-            if self.assembly_points:
-                assembly_feats = pointnet_feats[:,2,:]
-                pointnet_feats = torch.cat([pointnet_feats[:,:2,:].max(dim=-2)[0], assembly_feats], dim=1)
-            else:
-                pointnet_feats, _ = pointnet_feats.max(dim=-2)
+            pointnet_feats, _ = pointnet_feats.max(dim=-2)
         else:
             pointnet_feats = pointnet_feats.reshape(graph.pcs.shape[0], -1)
+
+        if self.assembly_points:
+            _, global_pointnet_feats = self.assembly_pointnet_encoder(graph.global_pcs)
+            pointnet_feats = torch.cat([pointnet_feats, global_pointnet_feats], dim=1)
+
         preds = self.lin(pointnet_feats)
         return preds
 
