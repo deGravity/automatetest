@@ -77,7 +77,7 @@ def sample_points(npoints, assembly_points, normalize, combined):
     def _sample_points(data):
         facet_to_part_id = data.flat_topos_to_graph_idx[0][data.face_to_flat_topos[1][data.F_to_faces[0]]]
         if assembly_points:
-            assembly_pc, assembly_normals, assembly_tris = helper_add_point_cloud(npoints*2 if combined else npoints, data.V, data.F, use_normals=True)
+            assembly_pc, assembly_normals, assembly_tris = helper_add_point_cloud(npoints, data.V, data.F, use_normals=True)
             point_to_part_idx = facet_to_part_id[assembly_tris]
 
         allpoints = []
@@ -115,7 +115,7 @@ def sample_points(npoints, assembly_points, normalize, combined):
 
             if assembly_points:
             
-                assembly_feats = torch.cat([assembly_pc, assembly_normals, torch.full((npoints*2, 1), -1, dtype=torch.float)], dim=1)
+                assembly_feats = torch.cat([assembly_pc, assembly_normals, torch.full((npoints, 1), -1, dtype=torch.float)], dim=1)
                 assembly_feats[point_to_part_idx == pair[0],6] = 0
                 assembly_feats[point_to_part_idx == pair[1],6] = 1
                 all_assembly_points.append(assembly_feats)

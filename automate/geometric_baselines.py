@@ -16,16 +16,18 @@ class PointnetBaseline(MatePredictorBase):
             linear_sizes: List[int] = [512, 512],
             point_features: int = 6,
             pointnet_size: int = 1024,
-            assembly_pointnet_size: int = 1024,
             num_points: int = 100,
             log_points: bool = False,
             assembly_points: bool = False,
+            assembly_pointnet_size: int = 1024,
+            assembly_point_features: int = 7,
             pool_features: bool = False,
             combine_points: bool = False,
         ):
         super().__init__()
         self.linear_sizes = linear_sizes
         self.point_features = point_features
+        self.assembly_point_features = assembly_point_features
         self.pointnet_size = pointnet_size
         self.assembly_pointnet_size = assembly_pointnet_size
         self.num_points = num_points
