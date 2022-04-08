@@ -2,7 +2,7 @@ import pytorch_lightning as pl
 from automate import SBGCN, LinearBlock, sbgcn
 import torch
 from typing import Any, List, Optional, Tuple, Union
-from torch.nn import Module
+from torch.nn import Module, ModuleList
 import torch.nn.functional as F
 import torchmetrics
 #from torch_geometric.nn import global_max_pool
@@ -33,6 +33,7 @@ class MatePredictor(MatePredictorBase):
             log_points: bool = False,
             pool_features: bool = False,
             assembly_conv: bool = False,
+            assembly_conv_layers: int = 1
         ):
         super().__init__()
         self.log_points = log_points
@@ -51,6 +52,7 @@ class MatePredictor(MatePredictorBase):
         self.srf_emb_dim = srf_emb_dim
         self.pool_features = pool_features
         self.assembly_conv = assembly_conv
+        self.assembly_conv_layers = assembly_conv_layers
 
 
         #self.num_points = num_points
@@ -62,7 +64,7 @@ class MatePredictor(MatePredictorBase):
             self.pointnet_encoder = PointNetEncoder(K=point_features, layers=(64, 64, 64, 128, pointnet_size))
             out_size += self.pointnet_size * 5
         if self.assembly_conv:
-            self.gcn = AssemblyNet(sbgcn_size, use_edge_feats=False)
+            self.gcns = ModuleList([AssemblyNet(sbgcn_size, use_edge_feats=False) for i in range(self.assembly_conv_layers)])
 
         self.lin = LinearBlock(out_size, *self.linear_sizes, 4, last_linear=True)
         self.loss = torch.nn.CrossEntropyLoss() #TODO: weighting
@@ -80,7 +82,8 @@ class MatePredictor(MatePredictorBase):
             feats_r = x_p[graph.part_edges[1]]
 
             if self.assembly_conv:
-                x_p = self.gcn(x_p, graph.part_edges)
+                for gcn in self.gcns:
+                    x_p = gcn(x_p, graph.part_edges)
 
             if self.pool_features:
                 pair_feats = torch.maximum(feats_l, feats_r)
