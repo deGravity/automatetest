@@ -33,7 +33,8 @@ class MatePredictor(MatePredictorBase):
             log_points: bool = False,
             pool_features: bool = False,
             assembly_conv: bool = False,
-            assembly_conv_layers: int = 1
+            assembly_conv_layers: int = 1,
+            axis_features: bool = False,
         ):
         super().__init__()
         self.log_points = log_points
@@ -53,10 +54,11 @@ class MatePredictor(MatePredictorBase):
         self.pool_features = pool_features
         self.assembly_conv = assembly_conv
         self.assembly_conv_layers = assembly_conv_layers
-
+        self.axis_features = axis_features
 
         #self.num_points = num_points
         out_size = 0
+        num_axis_feats = 2*self.sbgcn_size + 1
         if self.use_sbgcn:
             self.sbgcn = SBGCN(self.f_in, self.l_in, self.e_in, self.v_in, self.sbgcn_size, 0, use_uvnet_features=self.use_uvnet, crv_emb_dim=self.crv_emb_dim, srf_emb_dim=self.srf_emb_dim)
             out_size += self.sbgcn_size if self.pool_features else self.sbgcn_size * 2
@@ -64,7 +66,9 @@ class MatePredictor(MatePredictorBase):
             self.pointnet_encoder = PointNetEncoder(K=point_features, layers=(64, 64, 64, 128, pointnet_size))
             out_size += self.pointnet_size * 5
         if self.assembly_conv:
-            self.gcns = ModuleList([AssemblyNet(sbgcn_size, use_edge_feats=False) for i in range(self.assembly_conv_layers)])
+            self.gcns = ModuleList([AssemblyNet(sbgcn_size, use_edge_feats=self.axis_features, num_edge_feats=num_axis_feats) for i in range(self.assembly_conv_layers)])
+        if self.axis_features:
+            out_size += num_axis_feats
 
         self.lin = LinearBlock(out_size, *self.linear_sizes, 4, last_linear=True)
         self.loss = torch.nn.CrossEntropyLoss() #TODO: weighting
@@ -81,14 +85,28 @@ class MatePredictor(MatePredictorBase):
             feats_l = x_p[graph.part_edges[0]]
             feats_r = x_p[graph.part_edges[1]]
 
+            if self.axis_features:
+                refs_subset = graph.mcf_refs[:,graph.axis_labels]
+                inf1_feats = x_t[refs_subset[0]]
+                inf2_feats = x_t[refs_subset[1]]
+                inftype_feats = refs_subset[2].unsqueeze(-1)
+                axis_feats = torch.cat([inf1_feats, inf2_feats, inftype_feats], dim=1)
+
+
             if self.assembly_conv:
                 for gcn in self.gcns:
-                    x_p = gcn(x_p, graph.part_edges)
+                    if self.axis_features:
+                        x_p = gcn(x_p, graph.part_edges, axis_feats)
+                    else:
+                        x_p = gcn(x_p, graph.part_edges)
 
             if self.pool_features:
                 pair_feats = torch.maximum(feats_l, feats_r)
             else:
                 pair_feats = torch.cat([feats_l, feats_r], dim=1)
+            
+            if self.axis_features:
+                pair_feats = torch.cat([pair_feats, axis_feats], dim=1)
 
         if self.motion_pointnet:
             _, pointnet_feats = self.pointnet_encoder(graph.motion_points)
