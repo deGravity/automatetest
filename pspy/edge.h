@@ -42,6 +42,12 @@ struct Edge {
         const bool sample_tangents,
         std::vector<Eigen::VectorXd>& samples,
         Eigen::Vector2d& t_range) = 0;
+
+    virtual bool sample_curve(
+        const int N_samples, // N
+        Eigen::Vector2d& t_bounds,
+        Eigen::MatrixXd& t_samples // (Nx6) x,y,z,t_x,t_y,t_z
+    );
 };
 
 struct PSEdge: public Edge {
@@ -68,6 +74,12 @@ struct PSEdge: public Edge {
         const bool sample_tangents,
         std::vector<Eigen::VectorXd>& samples,
         Eigen::Vector2d& t_range) override;
+    
+    bool sample_curve(
+        const int N_samples, // N
+        Eigen::Vector2d& t_bounds,
+        Eigen::MatrixXd& t_samples // (Nx6) x,y,z,t_x,t_y,t_z
+    );
 };
 
 struct OCCTEdge: public Edge {
@@ -95,6 +107,13 @@ struct OCCTEdge: public Edge {
         const bool sample_tangents,
         std::vector<Eigen::VectorXd>& samples,
         Eigen::Vector2d& t_range) override;
+        Eigen::Vector2d& t_range);
+
+    bool sample_curve(
+        const int N_samples, // N
+        Eigen::Vector2d& t_bounds,
+        Eigen::MatrixXd& t_samples // (Nx6) x,y,z,t_x,t_y,t_z
+    );
 };
 
 

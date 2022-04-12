@@ -34,6 +34,12 @@ cpp_sources = [
     'occtloop.cpp',
     'occtvertex.cpp',
     'part.cpp'
+    'edge.cpp',
+    'face.cpp',
+    'loop.cpp',
+    'vertex.cpp',
+    'part.cpp',
+    'implicit_part.cpp'
 ]
 
 if platform == "linux" or platform == "linux2":

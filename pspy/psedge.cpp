@@ -413,3 +413,48 @@ void PSEdge::sample_points(const int num_points, const bool sample_tangents, std
         }
     }
 }
+
+bool Edge::sample_curve(
+    const int N_samples, 
+    Eigen::Vector2d& t_bounds, 
+    Eigen::MatrixXd& t_samples
+)
+{
+    // Start and end points on the _edge_ may be reversed from the original curve
+    t_bounds(0) = _is_reversed ? t_end : t_start;
+    t_bounds(1) = _is_reversed ? t_start : t_end;
+
+    // Only try evaluating a curve if it exists
+    if (!has_curve) {
+        return false;
+    }
+
+    Eigen::ArrayXd ts = Eigen::ArrayXd::LinSpaced(N_samples, t_bounds(0), t_bounds(1));
+    t_samples.resize(N_samples, 6);
+    PK_ERROR_t err = PK_ERROR_no_errors;
+    PK_VECTOR_t point, tangent;
+    for (int i = 0; i < N_samples; ++i) {
+        err = PK_CURVE_eval_with_tangent(
+            _curve,
+            ts(i),
+            0, // no derivatives
+            &point,
+            &tangent
+        );
+        if (err == PK_ERROR_at_singularity) {
+            // Use (0,0,0) as singularity tangent
+            tangent.coord[0] = 0;
+            tangent.coord[1] = 0;
+            tangent.coord[2] = 0;
+        }
+        else if (err != PK_ERROR_no_errors) {
+            // Break on any other errors
+            return false;
+        }
+        for (int j = 0; j < 3; ++j) {
+            t_samples(i, j) = point.coord[j];
+            t_samples(i, j + 3) = tangent.coord[j];
+        }
+    }
+    return true;
+}

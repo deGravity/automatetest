@@ -66,6 +66,10 @@ Part::Part(const std::string& path, PartOptions options)
 		random_samples.init(topology, options);
 	}
 
+	if (options.num_sdf_samples > 0) {
+		mask_sdf.init(topology, options);
+	}
+
 	summary.init(topology, mass_properties, bounding_box);
 
 	if (options.collect_inferences) {
@@ -245,18 +249,18 @@ void PartTopologyRelations::init(BREPTopology& topology)
 		loop_to_edge(1, i) = topology.loop_to_edge[i]._child;
 	}
 
-edge_to_vertex.resize(2, topology.edge_to_vertex.size());
-for (int i = 0; i < topology.edge_to_vertex.size(); ++i) {
-	edge_to_vertex(0, i) = topology.edge_to_vertex[i]._parent;
-	edge_to_vertex(1, i) = topology.edge_to_vertex[i]._child;
-}
+	edge_to_vertex.resize(2, topology.edge_to_vertex.size());
+	for (int i = 0; i < topology.edge_to_vertex.size(); ++i) {
+		edge_to_vertex(0, i) = topology.edge_to_vertex[i]._parent;
+		edge_to_vertex(1, i) = topology.edge_to_vertex[i]._child;
+	}
 
-face_to_face.resize(3, topology.face_to_face.size());
-for (int i = 0; i < topology.face_to_face.size(); ++i) {
-	face_to_face(0, i) = std::get<0>(topology.face_to_face[i]);
-	face_to_face(1, i) = std::get<1>(topology.face_to_face[i]);
-	face_to_face(2, i) = std::get<2>(topology.face_to_face[i]);
-}
+	face_to_face.resize(3, topology.face_to_face.size());
+	for (int i = 0; i < topology.face_to_face.size(); ++i) {
+		face_to_face(0, i) = std::get<0>(topology.face_to_face[i]);
+		face_to_face(1, i) = std::get<1>(topology.face_to_face[i]);
+		face_to_face(2, i) = std::get<2>(topology.face_to_face[i]);
+	}
 }
 
 void PartTopologyNodes::init(BREPTopology& topology)
@@ -419,6 +423,20 @@ void PartRandomSamples::init(BREPTopology& topology, PartOptions options)
 		topology.faces[i]->random_sample_points(num_points, samples[i], coords[i], uv_box[i]);
 	}
 }
+
+void PartMaskSDF::init(BREPTopology& topology, PartOptions options)
+{
+	const int quality = options.sdf_sample_quality;
+	const int num_points = options.num_sdf_samples;
+	const int n_faces = topology.faces.size();
+	sdf.resize(n_faces);
+	coords.resize(n_faces);
+	uv_box.resize(n_faces);
+	for (int i = 0; i < n_faces; ++i) {
+		topology.faces[i].sample_mask_sdf(quality, num_points, coords[i], sdf[i], uv_box[i]);
+	}
+}
+
 
 
 void PartSummary::init(BREPTopology& topology, MassProperties& mass_props, Eigen::MatrixXd& bb)
@@ -598,3 +616,4 @@ MCF::MCF(const PartInference& origin_inf, const PartInference& axis_inf, bool on
 	ref.origin_ref = origin_inf.reference;
 	ref.axis_ref = axis_inf.reference;
 }
+

@@ -3,6 +3,7 @@
 #include <pybind11/stl.h>
 #include "eclass.h"
 #include "part.h"
+#include "implicit_part.h"
 
 namespace py = pybind11;
 
@@ -158,7 +159,38 @@ std::string edge_repr(const Edge& e) {
 	return message;
 }
 
-PYBIND11_MODULE(pspy_cpp, m) {
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+	// implicit_part.h
+	py::class_<ImplicitPart>(m, "ImplicitPart")
+		.def(py::init<const std::string&, const int, const int, const bool>())
+		.def("ApplyTransform", &ImplicitPart::ApplyTransform)
+		.def_readwrite("bounding_box", &ImplicitPart::bounding_box)
+		.def_readwrite("face_surfaces", &ImplicitPart::face_surfaces)
+		.def_readwrite("face_surface_parameters", &ImplicitPart::face_surface_parameters)
+		.def_readwrite("face_surface_flipped", &ImplicitPart::face_surface_flipped)
+		.def_readwrite("loop_types", &ImplicitPart::loop_types)
+		.def_readwrite("loop_length", &ImplicitPart::loop_length)
+		.def_readwrite("edge_curves", &ImplicitPart::edge_curves)
+		.def_readwrite("edge_curve_parameters", &ImplicitPart::edge_curve_parameters)
+		.def_readwrite("edge_curve_flipped", &ImplicitPart::edge_curve_flipped)
+		.def_readwrite("edge_length", &ImplicitPart::edge_length)
+		.def_readwrite("vertex_positions", &ImplicitPart::vertex_positions)
+		.def_readwrite("face_to_face", &ImplicitPart::face_to_face)
+		.def_readwrite("face_to_loop", &ImplicitPart::face_to_loop)
+		.def_readwrite("loop_to_edge", &ImplicitPart::loop_to_edge)
+		.def_readwrite("edge_to_vertex", &ImplicitPart::edge_to_vertex)
+		.def_readwrite("loop_to_vertex", &ImplicitPart::loop_to_vertex)
+		.def_readwrite("ordered_loop_edge", &ImplicitPart::ordered_loop_edge)
+		.def_readwrite("ordered_loop_flipped", &ImplicitPart::ordered_loop_flipped)
+		.def_readwrite("edge_to_vertex_is_start", &ImplicitPart::edge_to_vertex_is_start)
+		.def_readwrite("loop_to_edge_flipped", &ImplicitPart::loop_to_edge_flipped)
+		.def_readwrite("surface_bounds", &ImplicitPart::surface_bounds)
+		.def_readwrite("surface_coords", &ImplicitPart::surface_coords)
+		.def_readwrite("surface_samples", &ImplicitPart::surface_samples)
+		.def_readwrite("curve_bounds", &ImplicitPart::curve_bounds)
+		.def_readwrite("curve_samples", &ImplicitPart::curve_samples)
+		.def_readwrite("valid", &ImplicitPart::valid);
+
 	// part.h
 
 	py::class_<PartOptions>(m, "PartOptions")
@@ -169,6 +201,8 @@ PYBIND11_MODULE(pspy_cpp, m) {
 		.def_readwrite("transform_matrix", &PartOptions::transform_matrix)
 		.def_readwrite("num_uv_samples", &PartOptions::num_uv_samples)
 		.def_readwrite("num_random_samples", &PartOptions::num_random_samples)
+		.def_readwrite("num_sdf_samples", &PartOptions::num_sdf_samples)
+		.def_readwrite("sdf_sample_quality", &PartOptions::sdf_sample_quality)
 		.def_readwrite("sample_normals", &PartOptions::num_uv_samples)
 		.def_readwrite("sample_tangents", &PartOptions::sample_tangents)
 		.def_readwrite("tesselate", &PartOptions::tesselate)
@@ -185,6 +219,7 @@ PYBIND11_MODULE(pspy_cpp, m) {
 		.def_readonly("brep", &Part::brep)
 		.def_readonly("samples", &Part::samples)
 		.def_readonly("random_samples", &Part::random_samples)
+		.def_readonly("mask_sdf", &Part::mask_sdf)
 		.def_readonly("summary", &Part::summary)
 		.def_readonly("inferences", &Part::inferences)
 		.def_readonly("default_mcfs", &Part::default_mcfs)
@@ -285,6 +320,11 @@ PYBIND11_MODULE(pspy_cpp, m) {
 		.def_readonly("samples", &PartRandomSamples::samples)
 		.def_readonly("coords", &PartRandomSamples::coords)
 		.def_readonly("uv_box", &PartRandomSamples::uv_box);
+
+	py::class_<PartMaskSDF>(m, "PartMaskSDF")
+		.def_readonly("coords", &PartMaskSDF::coords)
+		.def_readonly("sdf", &PartMaskSDF::sdf)
+		.def_readonly("uv_box", &PartMaskSDF::uv_box);
 
 	py::class_<PartSummary>(m, "PartSummary")
 		.def_readonly("bounding_box", &PartSummary::bounding_box)
