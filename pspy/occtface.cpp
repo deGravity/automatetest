@@ -15,6 +15,8 @@
 #include <gp_Sphere.hxx>
 #include <gp_Torus.hxx>
 
+namespace pspy {
+
 OCCTFace::OCCTFace(const TopoDS_Shape &shape) {
     assert(shape.ShapeType() == TopAbs_FACE);
 
@@ -382,4 +384,6 @@ void OCCTFace::random_sample_points(
     Eigen::MatrixXd& coords,
     Eigen::MatrixXd& uv_range) {
     // TODO: implement
+}
+
 }

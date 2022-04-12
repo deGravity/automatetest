@@ -16,6 +16,8 @@
 #include <gp_Lin.hxx>
 #include <gp_Elips.hxx>
 
+namespace pspy {
+
 OCCTEdge::OCCTEdge(const TopoDS_Shape& shape, const TopTools_ListOfShape& faces) {
     assert(shape.ShapeType() == TopAbs_EDGE);
 
@@ -309,4 +311,6 @@ void OCCTEdge::sample_points(
     std::vector<Eigen::VectorXd>& samples,
     Eigen::Vector2d& t_range) {
     // TODO: implement
+}
+
 }

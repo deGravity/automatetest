@@ -9,6 +9,8 @@
 #include <assert.h>
 #include <float.h>
 
+namespace pspy {
+
 PSEdge::PSEdge(int id) {
     _id = id;
 
@@ -457,4 +459,6 @@ bool Edge::sample_curve(
         }
     }
     return true;
+}
+
 }

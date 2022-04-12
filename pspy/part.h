@@ -6,6 +6,7 @@
 #include <vector>
 #include "body.h"
 
+namespace pspy {
 struct PartOptions {
 	bool just_bb = false;
 	bool normalize = false;
@@ -219,5 +220,7 @@ struct Part {
 	std::vector<MCF> default_mcfs;
 	bool _is_valid;
 };
+
+}
 
 #endif // !PART_H_INCLUDED

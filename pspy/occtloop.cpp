@@ -11,6 +11,8 @@
 #include <BRepAdaptor_Surface.hxx>
 #include <gp_Pln.hxx>
 
+namespace pspy {
+
 OCCTLoop::OCCTLoop(const TopoDS_Shape& shape, const TopTools_ListOfShape& faces)
 {
     assert(shape.ShapeType() == TopAbs_WIRE);
@@ -145,4 +147,6 @@ std::vector<Inference> OCCTLoop::get_inferences()
     }
 
     return inferences;
+}
+
 }

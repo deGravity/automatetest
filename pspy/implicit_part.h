@@ -5,6 +5,8 @@
 #include <vector>
 #include "types.h"
 
+namespace pspy {
+
 struct ImplicitPart {
 	ImplicitPart(
 		const std::string& path, 
@@ -57,5 +59,7 @@ struct ImplicitPart {
 
 	bool valid;
 };
+
+}
 
 #endif // !IMPLICIT_PART_H_INCLUDED

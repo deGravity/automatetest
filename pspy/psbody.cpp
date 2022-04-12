@@ -4,6 +4,8 @@
 #include <map>
 #include <vector>
 
+namespace pspy {
+
 bool is_psbody(int id) {
     PK_ERROR_t err = PK_ERROR_no_errors;
     PK_CLASS_t entity_class;
@@ -422,5 +424,7 @@ void PSBody::debug() {
     std::cout << "Mass c of G:" << std::endl << mass.c_of_g << std::endl;
     std::cout << "Mass m of i:" << std::endl << mass.m_of_i << std::endl;
     std::cout << "Num Tess Faces: " << F.rows() << std::endl;
+
+}
 
 }

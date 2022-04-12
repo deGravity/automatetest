@@ -3,6 +3,8 @@
 #include "lsh.h"
 #include "disjointset.h"
 
+namespace pspy {
+
 std::vector<int> find_equivalence_classes(const std::vector<Eigen::VectorXd>& points, double tolerance)
 {
 	if (points.size() == 0) {
@@ -28,4 +30,6 @@ std::vector<int> find_equivalence_classes(const std::vector<Eigen::VectorXd>& po
 	}
 
 	return eclasses;
+}
+
 }

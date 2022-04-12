@@ -26,6 +26,8 @@
 #include <BRepTools_WireExplorer.hxx>
 #include <TopExp_Explorer.hxx>
 
+namespace pspy {
+
 std::vector<std::shared_ptr<Body>> read_step(std::string path) {
     std::vector<std::shared_ptr<Body>> parts_vec;
 
@@ -477,4 +479,6 @@ void OCCTBody::debug() {
     std::cout << "Mass c of G:" << std::endl << mass.c_of_g << std::endl;
     std::cout << "Mass m of i:" << std::endl << mass.m_of_i << std::endl;
     std::cout << "Num Tess Faces: " << F.rows() << std::endl;
+}
+
 }

@@ -9,6 +9,7 @@
 #include <map>
 #include <vector>
 
+namespace pspy {
 struct TopologicalEntity {
     TopologicalEntity(int id, int entity_class) {
         _id = id;
@@ -84,6 +85,6 @@ struct BREPTopology {
     std::map<int, int> pk_to_class;
 };
 
-
+}
 
 #endif // !TOPOLOGY_H_INCLUDED

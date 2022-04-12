@@ -3,6 +3,8 @@
 
 #include <parasolid.h>
 
+namespace pspy {
+
 PSVertex::PSVertex(int id) {
     _id = id;
 
@@ -28,4 +30,6 @@ std::vector<Inference> PSVertex::get_inferences()
     inferences.push_back(inf);
 
     return inferences;
+}
+
 }

@@ -15,6 +15,8 @@
 #include <iostream>
 #include "types.h"
 
+namespace pspy {
+
 class Body {
 public:
     virtual BREPTopology GetTopology() = 0;
@@ -102,5 +104,7 @@ std::vector<std::shared_ptr<Body>> read_xt(std::string path);
 
 // OCCTBody Helper Functions
 std::vector<std::shared_ptr<Body>> read_step(std::string path);
+
+}
 
 #endif // !BODY_H_INCLUDED

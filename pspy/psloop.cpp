@@ -1,6 +1,8 @@
 #include "loop.h"
 #include "loop.h"
 
+namespace pspy {
+
 PSLoop::PSLoop(int id)
 {
     _id = id;
@@ -155,4 +157,6 @@ std::vector<Inference> PSLoop::get_inferences()
     }
 
     return inferences;
+}
+
 }

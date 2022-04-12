@@ -7,6 +7,7 @@
 
 #include <implicit_part.h>
 
+using namespace pspy;
 
 int main(int argc, char** argv) {
     /*

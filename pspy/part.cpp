@@ -4,6 +4,8 @@
 #include <set>
 #include <map>
 
+namespace pspy {
+
 Part::Part(const std::string& path, PartOptions options)
 {
 	auto bodies = read_file(path);
@@ -617,3 +619,4 @@ MCF::MCF(const PartInference& origin_inf, const PartInference& axis_inf, bool on
 	ref.axis_ref = axis_inf.reference;
 }
 
+}

@@ -7,6 +7,8 @@
 #include <BRepAdaptor_Surface.hxx>
 #include "types.h"
 
+namespace pspy {
+
 struct Face {
     virtual std::vector<Inference> get_inferences() = 0;
 
@@ -152,5 +154,6 @@ struct OCCTFace: public Face {
 
 };
 
+}
 
 #endif // !FACE_H_INCLUDED

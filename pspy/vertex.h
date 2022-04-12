@@ -6,6 +6,8 @@
 #include <TopoDS_Vertex.hxx>
 #include "types.h"
 
+namespace pspy {
+
 struct Vertex {
     Eigen::Vector3d position;
 
@@ -28,5 +30,7 @@ struct OCCTVertex: public Vertex {
 
     std::vector<Inference> get_inferences() override;
 };
+
+}
 
 #endif // !VERTEX_H_INCLUDED

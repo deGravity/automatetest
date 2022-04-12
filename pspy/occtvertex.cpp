@@ -2,6 +2,8 @@
 #include <TopoDS.hxx>
 #include <BRep_Tool.hxx>
 
+namespace pspy {
+
 OCCTVertex::OCCTVertex(const TopoDS_Shape& shape) {
     assert(shape.ShapeType() == TopAbs_VERTEX);
 
@@ -24,4 +26,6 @@ std::vector<Inference> OCCTVertex::get_inferences()
     inferences.push_back(inf);
 
     return inferences;
+}
+
 }

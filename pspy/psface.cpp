@@ -5,6 +5,8 @@
 #include <assert.h>
 #include <algorithm>
 
+namespace pspy {
+
 PSFace::PSFace(int id) {
     _id = id;
 
@@ -986,4 +988,6 @@ bool Face::sample_surface(
     delete[] uv_grid;
 
     return true;
+}
+
 }

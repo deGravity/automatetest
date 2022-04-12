@@ -10,6 +10,8 @@
 #include <TopoDS_Face.hxx>
 #include <TopTools_ListOfShape.hxx>
 
+namespace pspy {
+
 struct Loop {
     virtual std::vector<Inference> get_inferences() = 0;
 
@@ -44,5 +46,6 @@ struct OCCTLoop: public Loop {
     TopTools_ListOfShape _faces;
 };
 
+}
 
 #endif // LOOP_H_INCLUDED

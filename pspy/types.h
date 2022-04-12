@@ -11,6 +11,8 @@
 #include <TopoDS_Shape.hxx>
 #include <TopAbs_ShapeEnum.hxx>
 
+namespace pspy {
+
 enum class TopologyType {
     FACE,
     EDGE,
@@ -227,5 +229,7 @@ struct gp_Pnt_Pred {
             pnt1.Z() == pnt2.Z();
     }
 };
+
+}
 
 #endif // !TYPES_H_INCLUDED

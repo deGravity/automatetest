@@ -2,6 +2,8 @@
 
 #include <vector>
 
+namespace pspy {
+
 static std::string get_extension(std::string path) {
 	size_t idx = path.find_last_of('.');
 	std::string ext(path, idx + 1, path.size() - idx - 1);
@@ -30,4 +32,6 @@ std::vector<std::shared_ptr<Body>> read_file(std::string path) {
     else {
         return std::vector<std::shared_ptr<Body>>();
     }
+}
+
 }

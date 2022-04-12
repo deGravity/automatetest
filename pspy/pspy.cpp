@@ -6,7 +6,7 @@
 #include "implicit_part.h"
 
 namespace py = pybind11;
-
+using namespace pspy;
 
 std::string face_repr(const Face& f) {
 	std::string message = "";

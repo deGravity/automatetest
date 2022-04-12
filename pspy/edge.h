@@ -9,6 +9,8 @@
 #include <TopTools_ListOfShape.hxx>
 #include <BRepAdaptor_Curve.hxx>
 
+namespace pspy {
+
 struct Edge {
     virtual std::vector<Inference> get_inferences() = 0;
 
@@ -116,5 +118,6 @@ struct OCCTEdge: public Edge {
     );
 };
 
+}
 
 #endif // !EDGE_H_INCLUDED

@@ -2,6 +2,8 @@
 
 #include "part.h"
 
+namespace pspy {
+
 ImplicitPart::ImplicitPart(
 	const std::string& path, 
 	const int N,
@@ -275,4 +277,6 @@ void ImplicitPart::ApplyTransform(
 	// Apply to bounding box
 	bounding_box.rowwise() += translation;
 	bounding_box *= scale;
+}
+
 }
