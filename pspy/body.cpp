@@ -10,6 +10,15 @@ static std::string get_extension(std::string path) {
 }
 
 std::vector<std::shared_ptr<Body>> read_file(std::string path) {
+
+    if (path.rfind("ISO-10303-21;", 0) != std::string::npos) {
+        return read_step(path);
+    }
+
+    if (path.rfind("**", 0) != std::string::npos) {
+        return read_xt(path);
+    }
+
     std::string ext = get_extension(path);
 
     if (ext == "x_t" || ext == "xt") {
