@@ -4,6 +4,8 @@
 #include <map>
 #include <unordered_map>
 #include <vector>
+#include <string>
+#include <sstream>
 
 #include <STEPControl_Reader.hxx>
 #include <IFSelect_ReturnStatus.hxx>
@@ -29,8 +31,16 @@ std::vector<std::shared_ptr<Body>> read_step(std::string path) {
 
 	STEPControl_Reader reader;
     Interface_Static::SetCVal("xstep.cascade.unit", "M");
-	IFSelect_ReturnStatus ret = reader.ReadFile(path.c_str());
+	IFSelect_ReturnStatus ret;
 
+    // Allow the file contents to be passed in instead of the path
+    // All step files begin with "ISO-10303-21;", and this is not
+    // a valid file path, so this should be safe.
+    if (path.rfind("ISO-10303-21;", 0) == std::string::npos) {
+        ret = reader.ReadFile(path.c_str());
+    } else {
+        ret = reader.ReadStream(std::stringstream(path));
+    }
     if (ret == IFSelect_RetDone) {
         reader.TransferRoots();
         TopoDS_Shape shape = reader.OneShape();
