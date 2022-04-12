@@ -11,28 +11,7 @@ os.environ['PYOPENGL_PLATFORM'] = 'egl'
 
 class FixedGridPredictor(pl.LightningModule, ArgparseInitialized):
 
-    @staticmethod
-    def add_model_specific_args(parent_parser):
-        parser = parent_parser.add_argument_group("FixedGridPredictor")
-        parser.add_argument("--sbgcn_hidden_size", type=int, default=128)
-        parser.add_argument("--surf_hidden_sizes", type=tuple, default = (1024, 1024))
-        parser.add_argument("--curve_hidden_sizes", type=tuple, default = (1024, 1024))
-        parser.add_argument("--w_curve_loss", type=float, default = 1.0)
-        parser.add_argument("--w_surf_loss", type=float, default = 1.0)
-        parser.add_argument("--w_metric_loss", type=float, default = 1.0)
-        parser.add_argument("--w_arc_loss", type=float, default = 1.0)
-        parser.add_argument("--w_corner_loss", type=float, default = 1.0)
-        parser.add_argument("--sbgcn_k", type=int, default = 0)
-
-        parser.add_argument("--render_size", type=tuple, default = (800, 800))
-        parser.add_argument("--render_count", type=int, default = 5)
-
-        parser.add_argument("--num_samples", type=int, default = 10)
-
-        return parent_parser
-
-    @staticmethod
-    def get_callbacks():
+    def get_callbacks(self):
         return [
         ModelCheckpoint(
             monitor='train/loss', save_top_k=1, filename="{epoch}-{train_loss:.6f}",mode="min",
@@ -42,7 +21,7 @@ class FixedGridPredictor(pl.LightningModule, ArgparseInitialized):
         ),
         ModelCheckpoint(save_last=True),
         EarlyStopping(
-            monitor=f'val/loss', patience=3 ,mode='min', check_finite=True
+            monitor=f'val/loss', patience=self.patience ,mode='min', check_finite=True
         )
     ]
 
@@ -59,7 +38,9 @@ class FixedGridPredictor(pl.LightningModule, ArgparseInitialized):
         sbgcn_k: int = 0,
         render_size: Tuple[int, int] = (800,800),
         render_count: int = 5,
-        num_samples: int = 10
+        num_samples: int = 10,
+        learning_rate: float = 1e-3,
+        patience: int = 3
     ):
         super().__init__()
 
@@ -70,6 +51,8 @@ class FixedGridPredictor(pl.LightningModule, ArgparseInitialized):
 
         self.N = num_samples
 
+        self.patience = patience
+
 
         self.w_curve_loss = w_curve_loss
         self.w_surf_loss = w_surf_loss
@@ -78,6 +61,8 @@ class FixedGridPredictor(pl.LightningModule, ArgparseInitialized):
         self.w_arc_loss = w_arc_loss
         self.w_corner_loss = w_corner_loss
 
+        self.learning_rate = learning_rate
+
         self.sbgcn_hidden_size = sbgcn_hidden_size
         self.sbgcn_k = sbgcn_k
         self.sbgcn = SBGCN(f_in, l_in, e_in, v_in, self.sbgcn_hidden_size, self.sbgcn_k)
@@ -85,21 +70,21 @@ class FixedGridPredictor(pl.LightningModule, ArgparseInitialized):
         self.curve_hidden_sizes = curve_hidden_sizes
 
         self.render_size = render_size
-        self.renderer = pyrender.OffscreenRenderer(*self.render_size)
+        #self.renderer = pyrender.OffscreenRenderer(*self.render_size)
         self.render_count = render_count
 
-        self.curve_lin = LinearBlock(self.sbgcn_hidden_size, *self.curve_hidden_sizes, 3*N)
-        self.surf_lin = LinearBlock(self.sbgcn_hidden_size, *self.surf_hidden_sizes, 4*N*N)
+        self.curve_lin = LinearBlock(self.sbgcn_hidden_size, *self.curve_hidden_sizes, 3*self.N)
+        self.surf_lin = LinearBlock(self.sbgcn_hidden_size, *self.surf_hidden_sizes, 4*self.N*self.N)
         
         self.save_hyperparameters(ignore=['render_size', 'render_count'])
 
-    def __del__(self):
-        self.renderer.delete()
+    #def __del__(self):
+        #self.renderer.delete()
     
     def forward(self, x):
         _, _, x_f, _, x_e, _ = self.sbgcn(x)
         surf_pred = torch.tanh(self.surf_lin(x_f))
-        curve_pred = torch.tanh(self.edge_lin(x_e))
+        curve_pred = torch.tanh(self.curve_lin(x_e))
         return surf_pred.reshape(-1,self.N,self.N,4), curve_pred.reshape(-1,self.N,3)
     
     def on_train_start(self):
@@ -189,13 +174,19 @@ class FixedGridPredictor(pl.LightningModule, ArgparseInitialized):
         losses, _, _ = self.common_step(batch, batch_idx, 'train')
         batch_size = len(batch.face_to_flat_topos[1].unique())
         self.log_dict(losses, batch_size=batch_size, on_step=True, on_epoch=True)
-        return losses['train_loss']
+        return losses['train/loss']
     
+    def on_validation_start(self):
+        self.renderer = pyrender.OffscreenRenderer(*self.render_size)
+
+    def on_validation_end(self):
+        self.renderer.delete()
+
     def validation_step(self, batch, batch_idx):
         losses, surf_pred, curve_pred = self.common_step(batch, batch_idx, 'val')
         batch_size = len(batch.face_to_flat_topos[1].unique())
         self.log_dict(losses, batch_size=batch_size)
-        if batch_idx == 0:
+        if batch_idx == 0 :
             tensorboard = self.logger.experiment
             comparison = render_batch(
                 batch, 
@@ -203,7 +194,7 @@ class FixedGridPredictor(pl.LightningModule, ArgparseInitialized):
                 self.render_count, 
                 self.renderer
             )
-            tensorboard.add_image('val_comparison', comparison, self.current_epoch)
+            tensorboard.add_image('val/comparison', comparison, self.current_epoch)
     
     def test_step(self, batch, batch_idx):
         losses, surf_pred, curve_pred = self.common_step(batch, batch_idx, 'test')
@@ -211,5 +202,5 @@ class FixedGridPredictor(pl.LightningModule, ArgparseInitialized):
 
     
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         return optimizer

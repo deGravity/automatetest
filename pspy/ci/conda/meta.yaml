@@ -1,0 +1,32 @@
+package:
+  name: pspy
+  version: 1.0.0
+
+source:
+  path: ../..
+
+build:
+  number: 0
+  script: "{{ PYTHON }} setup.py install"
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+  host:
+    - eigen
+    - occt =7.6.1
+    - python >=3.6
+    - setuptools
+    - pytorch >=1.10
+  run:
+    - numpy
+    - occt =7.6.1
+    - pandas
+    - python >=3.6
+    - pytorch >=1.10
+
+about:
+  home: https://github.com/deGravity/automate
+  license: MIT
+  license_family: MIT
+  summary: "Python wrapper for Parasolid"

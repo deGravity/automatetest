@@ -5,18 +5,27 @@
 #include <map>
 #include <part.h>
 
-using namespace pspy;
+#include <implicit_part.h>
+
 
 int main(int argc, char** argv) {
+    /*
     PartOptions options;
-    //options.onshape_style = false;
-    //options.default_mcfs_only_face_axes = false;
-    //options.num_uv_samples = 100;
-    //options.collect_inferences = false;
-    //options.default_mcfs = false;
+    options.onshape_style = false;
+    options.default_mcfs_only_face_axes = false;
+    options.num_uv_samples = 0;
+    options.num_random_samples = 0;
+    options.num_sdf_samples = 5000;
+    options.sdf_sample_quality = 5000;
+    options.collect_inferences = false;
+    options.default_mcfs = false;
 
-    std::cout << "loading" << TEST_PART << std::endl;
     auto part = Part(TEST_PART, options);
-    std::cout << "valid: " << part._is_valid << std::endl;
+    */
+
+    // Simple Test of KD-Tree
+
+    auto ipart = ImplicitPart(TEST_PART, 500, 5000, true);
+
     return 0;
 }

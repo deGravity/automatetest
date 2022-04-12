@@ -5,6 +5,12 @@ from .uvgrid import UVPartDataModule, UVPartDataset, SimplePartDataset, UVPredSB
 from .grid_nn import FixedGridPredictor
 from .util import run_model, ArgparseInitialized
 from .cached_dataset import SavedDataModule, SavedDataset
+from .brep import PartFeatures, part_to_graph, HetData, PartDataset
+from .sbgcn import SBGCN, LinearBlock, BipartiteResMRConv
+#from .uvgrid import UVPartDataModule, UVPartDataset, SimplePartDataset, UVPredSBGCN, tb_comp, tb_mesh, tb_edge_mesh, tb_face_mesh, SimplePartDataModule, surface_metric, surface_normals, cos_corner_angles, arc_lengths
+#from .grid_nn import FixedGridPredictor
+from .util import run_model, ArgparseInitialized
+from .implicit import ImplicitDecoder, EuclideanMap, Rectangle, Circle, Union, Intersection, Complement, Difference, Translate, Scale, implicit_part_to_data
 
 __all__ = [
     'jsonify', 
@@ -30,5 +36,16 @@ __all__ = [
     'arc_lengths',
     'FixedGridPredictor',
     'run_model',
-    'ArgparseInitialized'
+    'ArgparseInitialized',
+    'ImplicitDecoder',
+    'EuclideanMap',
+    'Rectangle',
+    'Circle',
+    'Union',
+    'Intersection',
+    'Complement',
+    'Difference',
+    'Translate',
+    'Scale',
+    'implicit_part_to_data'
     ]

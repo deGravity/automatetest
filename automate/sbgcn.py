@@ -81,7 +81,7 @@ class SBGCN(torch.nn.Module):
         x_v = self.embed_v_in(x_v)
 
 
-        # Upward Pass ([[0,1]] flips downwards graph edges)
+        # Upward Pass ([[1,0]] flips downwards graph edges)
         x_e = self.V2E(x_v, x_e, data.edge_to_vertex[[1,0]])
         x_l = self.E2L(x_e, x_l, data.loop_to_edge[[1,0]])
         x_f = self.L2F(x_l, x_f, data.face_to_loop[[1,0]])

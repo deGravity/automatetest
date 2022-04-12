@@ -7,13 +7,12 @@ find_package(Eigen3 REQUIRED)
 
 add_subdirectory(parasolid)
 
-add_library(pspy   "disjointset.cpp" "disjointset.h" "lsh.h" "lsh.cpp" "eclass.h" "eclass.cpp" "types.h" "face.h" "face.cpp" "loop.h" "loop.cpp" "edge.h" "edge.cpp" "body.h" "body.cpp" "topology.h" "vertex.h" "vertex.cpp" "part.h" "part.cpp")
+add_library(pspy   "disjointset.cpp" "disjointset.h" "lsh.h" "lsh.cpp" "eclass.h" "eclass.cpp" "types.h" "face.h" "face.cpp" "loop.h" "loop.cpp" "edge.h" "edge.cpp" "body.h" "body.cpp" "topology.h" "vertex.h" "vertex.cpp" "part.h" "part.cpp" "neoflann.h" "implicit_part.cpp" "implicit_part.h")
 
-target_link_libraries(pspy PUBLIC parasolid)
+target_link_libraries(pspy PUBLIC parasolid Eigen3::Eigen)
 
 target_include_directories(pspy INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_definitions(-DTEST_PART="${CMAKE_CURRENT_SOURCE_DIR}/brick.x_t")
-
-add_executable(debug "main.cpp")
-target_link_libraries(debug PUBLIC pspy)
+add_executable(debug "main.cpp" "neoflann.h" "implicit_part.cpp" "implicit_part.h")
+target_link_libraries(debug PUBLIC pspy Eigen3::Eigen)

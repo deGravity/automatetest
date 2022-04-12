@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <Eigen/Core>
-namespace pspy {
-    std::vector<int> find_equivalence_classes(const std::vector<Eigen::VectorXd>& points, double tolerance);
-}
+
+std::vector<int> find_equivalence_classes(const std::vector<Eigen::VectorXd>& points, double tolerance);
+
 #endif // !ECLASS_INCLUDED
