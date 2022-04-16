@@ -159,7 +159,7 @@ std::string edge_repr(const Edge& e) {
 	return message;
 }
 
-PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+PYBIND11_MODULE(pspy_cpp, m) {
 	// implicit_part.h
 	py::class_<ImplicitPart>(m, "ImplicitPart")
 		.def(py::init<const std::string&, const int, const int, const bool>())

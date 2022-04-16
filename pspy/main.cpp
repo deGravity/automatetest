@@ -3,9 +3,9 @@
 
 #include <vector>
 #include <map>
-#include <part.h>
+#include "part.h"
 
-#include <implicit_part.h>
+#include "implicit_part.h"
 
 using namespace pspy;
 
@@ -26,7 +26,8 @@ int main(int argc, char** argv) {
 
     // Simple Test of KD-Tree
 
-    auto ipart = ImplicitPart(TEST_PART, 500, 5000, true);
+    auto ipart_xt = ImplicitPart(TEST_X_T, 500, 5000, true);
+    auto ipart_step = ImplicitPart(TEST_STEP, 500, 5000, true);
 
     return 0;
 }

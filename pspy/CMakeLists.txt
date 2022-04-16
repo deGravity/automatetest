@@ -15,8 +15,45 @@ link_directories(${OpenCASCADE_LIBRARY_DIR})
 
 add_subdirectory(parasolid)
 
-pybind11_add_module(pspy_cpp   "pspy.cpp" "disjointset.h" "disjointset.cpp" "lsh.h" "lsh.cpp" "eclass.h" "eclass.cpp" "types.h" "face.h" "psface.cpp" "occtface.cpp" "loop.h" "psloop.cpp" "occtloop.cpp" "edge.h" "psedge.cpp" "occtedge.cpp" "body.h" "body.cpp" "psbody.cpp" "occtbody.cpp" "topology.h" "vertex.h" "psvertex.cpp" "occtvertex.cpp" "part.h" "part.cpp" "neoflann.h" "implicit_part.cpp" "implicit_part.h")
+pybind11_add_module(pspy_cpp   
+	"pspy.cpp" 
+	"disjointset.h" "disjointset.cpp" 
+	"lsh.h" "lsh.cpp" 
+	"eclass.h" "eclass.cpp" 
+	"types.h" 
+	"face.h" "psface.cpp" "occtface.cpp" 
+	"loop.h" "psloop.cpp" "occtloop.cpp" 
+	"edge.h" "psedge.cpp" "occtedge.cpp" 
+	"body.h" "body.cpp" "psbody.cpp" "occtbody.cpp" 
+	"topology.h" 
+	"vertex.h" "psvertex.cpp" "occtvertex.cpp" 
+	"part.h" "part.cpp" 
+	"neoflann.h"  
+	"implicit_part.h" "implicit_part.cpp"
+	)
 
 target_link_libraries(pspy_cpp PUBLIC parasolid Eigen3::Eigen ${OpenCASCADE_LIBRARIES})
 
 target_include_directories(pspy_cpp INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_definitions(-DTEST_X_T="${CMAKE_CURRENT_SOURCE_DIR}/brick.x_t")
+add_definitions(-DTEST_STEP="${CMAKE_CURRENT_SOURCE_DIR}/brick.step")
+
+add_executable(debug
+	"main.cpp"
+	"disjointset.h" "disjointset.cpp" 
+	"lsh.h" "lsh.cpp" 
+	"eclass.h" "eclass.cpp" 
+	"types.h" 
+	"face.h" "psface.cpp" "occtface.cpp" 
+	"loop.h" "psloop.cpp" "occtloop.cpp" 
+	"edge.h" "psedge.cpp" "occtedge.cpp" 
+	"body.h" "body.cpp" "psbody.cpp" "occtbody.cpp" 
+	"topology.h" 
+	"vertex.h" "psvertex.cpp" "occtvertex.cpp" 
+	"part.h" "part.cpp" 
+	"neoflann.h"  
+	"implicit_part.h" "implicit_part.cpp"
+)
+
+target_link_libraries(debug PUBLIC parasolid Eigen3::Eigen ${OpenCASCADE_LIBRARIES})

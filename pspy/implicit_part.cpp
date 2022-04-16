@@ -12,7 +12,7 @@ ImplicitPart::ImplicitPart(
 {
 	valid = true;
 
-	auto bodies = read_xt(path);
+	auto bodies = read_file(path);
 	if (bodies.size() != 1) {
 		valid = false;
 		return;
