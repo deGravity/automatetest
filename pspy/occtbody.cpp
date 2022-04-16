@@ -41,7 +41,7 @@ std::vector<std::shared_ptr<Body>> read_step(std::string path) {
     if (path.rfind("ISO-10303-21;", 0) == std::string::npos) {
         ret = reader.ReadFile(path.c_str());
     } else {
-        ret = reader.ReadStream(std::stringstream(path));
+        ret = reader.ReadStream("rawtext", std::stringstream(path));
     }
     if (ret == IFSelect_RetDone) {
         reader.TransferRoots();

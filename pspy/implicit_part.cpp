@@ -18,7 +18,7 @@ ImplicitPart::ImplicitPart(
 		return;
 	}
 
-	Body& body = bodies[0];
+	Body& body = *bodies[0];
 
 	bounding_box = body.GetBoundingBox();
 
@@ -35,7 +35,7 @@ ImplicitPart::ImplicitPart(
 	surface_coords.resize(n_faces);
 	surface_samples.resize(n_faces);
 	for (int i = 0; i < n_faces; ++i) {
-		if (!topology.faces[i].sample_surface(N_ref, N, surface_bounds[i], surface_coords[i], surface_samples[i])) {
+		if (!topology.faces[i]->sample_surface(N_ref, N, surface_bounds[i], surface_coords[i], surface_samples[i])) {
 			valid = false;
 			return;
 		}
@@ -44,7 +44,7 @@ ImplicitPart::ImplicitPart(
 	curve_bounds.resize(n_edges);
 	curve_samples.resize(n_edges);
 	for (int i = 0; i < n_edges; ++i) {
-		if (!topology.edges[i].sample_curve(N_curve, curve_bounds[i], curve_samples[i])) {
+		if (!topology.edges[i]->sample_curve(N_curve, curve_bounds[i], curve_samples[i])) {
 			valid = false;
 			return;
 		}
@@ -57,16 +57,16 @@ ImplicitPart::ImplicitPart(
 	face_surface_parameters.setZero();
 	face_surface_flipped.resize(n_faces);
 	for (int i = 0; i < n_faces; ++i) {
-		face_surfaces[i] = topology.faces[i].function;
-		for (int j = 0; j < topology.faces[i].parameters.size(); ++j) {
-			face_surface_parameters(i, j) = topology.faces[i].parameters[j];
+		face_surfaces[i] = topology.faces[i]->function;
+		for (int j = 0; j < topology.faces[i]->parameters.size(); ++j) {
+			face_surface_parameters(i, j) = topology.faces[i]->parameters[j];
 		}
-		face_surface_flipped[i] = (int)(!topology.faces[i].orientation);
+		face_surface_flipped[i] = (int)(!topology.faces[i]->orientation);
 	}
 
 	loop_types.resize(n_loops);
 	for (int i = 0; i < n_loops; ++i) {
-		loop_types[i] = topology.loops[i]._type;
+		loop_types[i] = topology.loops[i]->_type;
 	}
 
 	const int CURVE_PARAM_WIDTH = 11;
@@ -76,17 +76,17 @@ ImplicitPart::ImplicitPart(
 	edge_length.resize(n_edges);
 	edge_curve_flipped.resize(n_edges);
 	for (int i = 0; i < n_edges; ++i) {
-		edge_curves[i] = topology.edges[i].function;
-		for (int j = 0; j < topology.edges[i].parameters.size(); ++j) {
-			edge_curve_parameters(i, j) = topology.edges[i].parameters[j];
+		edge_curves[i] = topology.edges[i]->function;
+		for (int j = 0; j < topology.edges[i]->parameters.size(); ++j) {
+			edge_curve_parameters(i, j) = topology.edges[i]->parameters[j];
 		}
-		edge_length[i] = topology.edges[i].length;
-		edge_curve_flipped[i] = topology.edges[i]._is_reversed;
+		edge_length[i] = topology.edges[i]->length;
+		edge_curve_flipped[i] = topology.edges[i]->_is_reversed;
 	}
 
 	vertex_positions.resize(topology.vertices.size(), 3);
 	for (int i = 0; i < topology.vertices.size(); ++i) {
-		vertex_positions.row(i) = topology.vertices[i].position;
+		vertex_positions.row(i) = topology.vertices[i]->position;
 	}
 
 	// Setup Toploogy Structures
@@ -125,7 +125,7 @@ ImplicitPart::ImplicitPart(
 		auto e = curve_samples[edge_idx].row(N_curve - 1);
 		Eigen::Vector3d start(s(0), s(1), s(2));
 		Eigen::Vector3d end(e(0), e(1), e(2));
-		Eigen::Vector3d pos = topology.vertices[vert_idx].position;
+		Eigen::Vector3d pos = topology.vertices[vert_idx]->position;
 		double start_dist = (start - pos).norm();
 		double end_dist = (end - pos).norm();
 		edge_to_vertex_is_start[i] = (start_dist <= end_dist);
@@ -157,13 +157,13 @@ ImplicitPart::ImplicitPart(
 	// Iteratively search for next-closest edge. Inefficient but accurate
 	for (int l = 0; l < n_loops; ++l) {
 		for (int i = 0; i < ordered_loop_edge[l].size() - 1; ++i) {
-			auto curr_end = topology.edges[ordered_loop_edge[l][i]].end;
+			auto curr_end = topology.edges[ordered_loop_edge[l][i]]->end;
 			int closest_start_idx = i + 1;
 			double closest_dist = (curr_end - 
-				topology.edges[ordered_loop_edge[l][closest_start_idx]].start
+				topology.edges[ordered_loop_edge[l][closest_start_idx]]->start
 				).norm();
 			for (int j = i + 1; j < ordered_loop_edge[l].size(); ++j) {
-				auto curr_start = topology.edges[ordered_loop_edge[l][j]].start;
+				auto curr_start = topology.edges[ordered_loop_edge[l][j]]->start;
 				auto dist = (curr_end - curr_start).norm();
 				if (dist < closest_dist) {
 					closest_dist = dist;

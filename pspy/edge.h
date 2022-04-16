@@ -49,7 +49,7 @@ struct Edge {
         const int N_samples, // N
         Eigen::Vector2d& t_bounds,
         Eigen::MatrixXd& t_samples // (Nx6) x,y,z,t_x,t_y,t_z
-    );
+    ) = 0;
 };
 
 struct PSEdge: public Edge {
@@ -109,7 +109,6 @@ struct OCCTEdge: public Edge {
         const bool sample_tangents,
         std::vector<Eigen::VectorXd>& samples,
         Eigen::Vector2d& t_range) override;
-        Eigen::Vector2d& t_range);
 
     bool sample_curve(
         const int N_samples, // N

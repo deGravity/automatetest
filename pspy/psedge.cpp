@@ -416,7 +416,7 @@ void PSEdge::sample_points(const int num_points, const bool sample_tangents, std
     }
 }
 
-bool Edge::sample_curve(
+bool PSEdge::sample_curve(
     const int N_samples, 
     Eigen::Vector2d& t_bounds, 
     Eigen::MatrixXd& t_samples
@@ -427,7 +427,7 @@ bool Edge::sample_curve(
     t_bounds(1) = _is_reversed ? t_start : t_end;
 
     // Only try evaluating a curve if it exists
-    if (!has_curve) {
+    if (!_has_curve) {
         return false;
     }
 

@@ -435,7 +435,8 @@ void PartMaskSDF::init(BREPTopology& topology, PartOptions options)
 	coords.resize(n_faces);
 	uv_box.resize(n_faces);
 	for (int i = 0; i < n_faces; ++i) {
-		topology.faces[i].sample_mask_sdf(quality, num_points, coords[i], sdf[i], uv_box[i]);
+		// TODO - commented out so it would compile - implement in the OCCT case, or remove
+		//topology.faces[i].sample_mask_sdf(quality, num_points, coords[i], sdf[i], uv_box[i]);
 	}
 }
 

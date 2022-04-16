@@ -688,7 +688,7 @@ void all_pairs_distances(
     }
 }
 
-void Face::sample_mask_sdf(
+void PSFace::sample_mask_sdf(
     const int quality,
     const int num_points,
     Eigen::MatrixXd& out_coords,
@@ -827,7 +827,7 @@ void Face::sample_mask_sdf(
     delete[] uv_grid;
 }
 
-bool Face::sample_surface(
+bool PSFace::sample_surface(
     const int N_ref_samples, 
     const int N_uv_samples,
     Eigen::MatrixXd& uv_bounds, 
