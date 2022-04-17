@@ -141,6 +141,9 @@ namespace pspy {
         parameters.push_back(circle.Axis().Direction().X());
         parameters.push_back(circle.Axis().Direction().Y());
         parameters.push_back(circle.Axis().Direction().Z());
+        parameters.push_back(circle.XAxis().Direction().X());
+        parameters.push_back(circle.XAxis().Direction().Y());
+        parameters.push_back(circle.XAxis().Direction().Z());
         parameters.push_back(circle.Radius());
     }
 
@@ -153,6 +156,9 @@ namespace pspy {
         parameters.push_back(ellipse.Axis().Direction().X());
         parameters.push_back(ellipse.Axis().Direction().Y());
         parameters.push_back(ellipse.Axis().Direction().Z());
+        parameters.push_back(ellipse.XAxis().Direction().X());
+        parameters.push_back(ellipse.XAxis().Direction().Y());
+        parameters.push_back(ellipse.XAxis().Direction().Z());
         parameters.push_back(ellipse.MinorRadius());
         parameters.push_back(ellipse.MajorRadius());
     }

@@ -176,6 +176,9 @@ namespace pspy {
         parameters.push_back(plane.Axis().Direction().X());
         parameters.push_back(plane.Axis().Direction().Y());
         parameters.push_back(plane.Axis().Direction().Z());
+        parameters.push_back(plane.XAxis().Direction().X());
+        parameters.push_back(plane.XAxis().Direction().Y());
+        parameters.push_back(plane.XAxis().Direction().Z());
     }
 
     void OCCTFace::init_cyl() {
@@ -187,6 +190,9 @@ namespace pspy {
         parameters.push_back(cylinder.Axis().Direction().X());
         parameters.push_back(cylinder.Axis().Direction().Y());
         parameters.push_back(cylinder.Axis().Direction().Z());
+        parameters.push_back(cylinder.XAxis().Direction().X());
+        parameters.push_back(cylinder.XAxis().Direction().Y());
+        parameters.push_back(cylinder.XAxis().Direction().Z());
         parameters.push_back(cylinder.Radius());
     }
 
@@ -199,8 +205,11 @@ namespace pspy {
         parameters.push_back(cone.Axis().Direction().X());      // 3 - axis_x
         parameters.push_back(cone.Axis().Direction().Y());      // 4 - axis_y
         parameters.push_back(cone.Axis().Direction().Z());      // 5 - axis_z
-        parameters.push_back(cone.RefRadius());                 // 6 - radius
-        parameters.push_back(cone.SemiAngle());                 // 7 - semi-angle
+        parameters.push_back(cone.XAxis().Direction().X());
+        parameters.push_back(cone.XAxis().Direction().Y());
+        parameters.push_back(cone.XAxis().Direction().Z());
+        parameters.push_back(cone.RefRadius());                 // 9 - radius
+        parameters.push_back(cone.SemiAngle());                 // 10 - semi-angle
     }
 
     void OCCTFace::init_sphere() {
@@ -212,6 +221,9 @@ namespace pspy {
         parameters.push_back(sphere.Position().Axis().Direction().X());
         parameters.push_back(sphere.Position().Axis().Direction().Y());
         parameters.push_back(sphere.Position().Axis().Direction().Z());
+        parameters.push_back(sphere.XAxis().Direction().X());
+        parameters.push_back(sphere.XAxis().Direction().Y());
+        parameters.push_back(sphere.XAxis().Direction().Z());
         parameters.push_back(sphere.Radius());
     }
 
@@ -224,6 +236,9 @@ namespace pspy {
         parameters.push_back(torus.Axis().Direction().X());
         parameters.push_back(torus.Axis().Direction().Y());
         parameters.push_back(torus.Axis().Direction().Z());
+        parameters.push_back(torus.XAxis().Direction().X());
+        parameters.push_back(torus.XAxis().Direction().Y());
+        parameters.push_back(torus.XAxis().Direction().Z());
         parameters.push_back(torus.MajorRadius());
         parameters.push_back(torus.MinorRadius());
     }
