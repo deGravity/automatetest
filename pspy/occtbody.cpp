@@ -82,10 +82,14 @@ BREPTopology OCCTBody::GetTopology() {
     TopExp::MapShapesAndAncestors(_shape, TopAbs_WIRE, TopAbs_FACE, loop_face_map);
 
     // Store faces, loops, edges, vertices
+    // Iterate in order to maintain ID stability
+    TopTools_IndexedMapOfShape shape_map;
+    TopExp::MapShapes(_shape, shape_map);
+
     int i = 0;
-    for (const auto& subshape_idx_pair : _shape_to_idx) {
-        TopoDS_Shape subshape = subshape_idx_pair.first;
-        int idx = subshape_idx_pair.second;
+    for (auto iterator = shape_map.cbegin(); iterator != shape_map.cend(); iterator++) {
+        TopoDS_Shape subshape = *iterator;
+        int idx = _shape_to_idx[subshape];
 
         switch (subshape.ShapeType()) {
         case TopAbs_FACE:
