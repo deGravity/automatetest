@@ -9,7 +9,7 @@
 #include <BRepBndLib.hxx>
 #include <BRepGProp.hxx>
 #include <BRepTools.hxx>
-#include <BRepClass_FaceClassifier.hxx>
+#include <BRepTopAdaptor_FClass2d.hxx>
 #include <GProp_GProps.hxx>
 #include <GeomLProp_SLProps.hxx>
 #include <gp_Pln.hxx>
@@ -431,6 +431,8 @@ namespace pspy {
         Eigen::MatrixXd ref_normals(N_ref_samples, 3);
         std::vector<bool> is_inside(N_ref_samples);
 
+        BRepTopAdaptor_FClass2d classifier(_shape, DBL_EPSILON);
+
         Eigen::MatrixXd inside_ref_samples(N_ref_samples, 2);
         Eigen::MatrixXd outside_ref_samples(N_ref_samples, 2);
 
@@ -439,9 +441,9 @@ namespace pspy {
 
         for (int i = 0; i < N_ref_samples; ++i) {
             gp_Pnt2d uv_pnt(u_samples[i], v_samples[i]);
-            BRepClass_FaceClassifier classifier(_shape, uv_pnt, DBL_EPSILON);
+            TopAbs_State state = classifier.Perform(uv_pnt);
 
-            if (classifier.State() == TopAbs_IN) { // reference sample i is inside the face
+            if (state == TopAbs_IN) { // reference sample i is inside the face
                 inside_ref_samples.row(inside_i) = ref_coords.row(i);
                 ++inside_i;
                 is_inside[i] = true;
