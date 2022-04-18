@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <Eigen/Core>
 #include <iostream>
+#include <memory>
 #include "types.h"
 
 namespace pspy {
@@ -91,19 +92,19 @@ private:
         TopoDS_Shape,
         int,
         TopoDS_Shape_Hash<TopoDS_Shape>,
-        TopoDS_Shape_Pred<TopoDS_Shape>> _shape_to_idx;
+        TopoDS_Shape_Pred<TopoDS_Shape> > _shape_to_idx;
     bool _valid; // If we need to re-compute due to transforms
 };
 
 // Helper Functions
-std::vector<std::shared_ptr<Body>> read_file(std::string path);
+std::vector<std::shared_ptr<Body> > read_file(std::string path);
 
 // PSBody Helper Functions
 bool is_psbody(int id);
-std::vector<std::shared_ptr<Body>> read_xt(std::string path);
+std::vector<std::shared_ptr<Body> > read_xt(std::string path);
 
 // OCCTBody Helper Functions
-std::vector<std::shared_ptr<Body>> read_step(std::string path);
+std::vector<std::shared_ptr<Body> > read_step(std::string path);
 
 }
 

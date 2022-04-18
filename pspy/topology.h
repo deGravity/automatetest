@@ -8,6 +8,7 @@
 
 #include <map>
 #include <vector>
+#include <memory>
 
 namespace pspy {
 struct TopologicalEntity {
@@ -49,10 +50,10 @@ struct TopoRelation {
 struct BREPTopology {
 
     // Node Lists
-    std::vector<std::shared_ptr<Face>> faces;
-    std::vector<std::shared_ptr<Loop>> loops;
-    std::vector<std::shared_ptr<Edge>> edges;
-    std::vector<std::shared_ptr<Vertex>> vertices;
+    std::vector<std::shared_ptr<Face> > faces;
+    std::vector<std::shared_ptr<Loop> > loops;
+    std::vector<std::shared_ptr<Edge> > edges;
+    std::vector<std::shared_ptr<Vertex> > vertices;
 
     // Edge Lists
     std::vector<TopoRelation> face_to_loop;
