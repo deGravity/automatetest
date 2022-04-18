@@ -6,12 +6,6 @@ set(CMAKE_CXX_STANDARD 14)
 find_package(pybind11 CONFIG REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(OpenCASCADE REQUIRED)
-find_package(VTK REQUIRED CommonCore)
-find_package(GLEW REQUIRED)
-find_package(Freetype REQUIRED)
-
-include_directories(${OpenCASCADE_INCLUDE_DIR})
-link_directories(${OpenCASCADE_LIBRARY_DIR})
 
 add_subdirectory(parasolid)
 
@@ -32,9 +26,9 @@ pybind11_add_module(pspy_cpp
 	"implicit_part.h" "implicit_part.cpp"
 	)
 
-target_link_libraries(pspy_cpp PUBLIC parasolid Eigen3::Eigen ${OpenCASCADE_LIBRARIES})
-
-target_include_directories(pspy_cpp INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(pspy_cpp PUBLIC parasolid Eigen3::Eigen TKernel TKXSBase TKSTEP TKBRep TKG3d TKMath TKMesh TKTopAlgo TKShHealing)
+target_include_directories(pspy_cpp PUBLIC ${OpenCASCADE_INCLUDE_DIR})
+target_link_directories(pspy_cpp PUBLIC ${OpenCASCADE_LIBRARY_DIR})
 
 add_definitions(-DTEST_X_T="${CMAKE_CURRENT_SOURCE_DIR}/brick.x_t")
 add_definitions(-DTEST_STEP="${CMAKE_CURRENT_SOURCE_DIR}/brick.step")
@@ -56,4 +50,6 @@ add_executable(debug
 	"implicit_part.h" "implicit_part.cpp"
 )
 
-target_link_libraries(debug PUBLIC parasolid Eigen3::Eigen ${OpenCASCADE_LIBRARIES})
+target_link_libraries(debug PUBLIC parasolid Eigen3::Eigen TKernel TKXSBase TKSTEP TKBRep TKG3d TKMath TKMesh TKTopAlgo TKShHealing)
+target_include_directories(debug PUBLIC ${OpenCASCADE_INCLUDE_DIR})
+target_link_directories(debug PUBLIC ${OpenCASCADE_LIBRARY_DIR})
