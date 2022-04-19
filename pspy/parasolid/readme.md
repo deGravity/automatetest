@@ -7,7 +7,6 @@ to those already in this directory, are:
 
  - `frustrum_ifails.h`
  - `frustrum_tokens.h`
- - `frustrum_interface.h`
  - `kernel_interface.h`
  - `parasolid_ifails.h`
  - `parasolid_kenel.h`
