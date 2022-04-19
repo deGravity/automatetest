@@ -23,6 +23,7 @@ dependencies:
   - scipy
   - matplotlib
   - dotmap
+  - h5py
   - meshplot
   - ipykernel
   - fvcore
