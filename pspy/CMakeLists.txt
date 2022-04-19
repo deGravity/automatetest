@@ -3,6 +3,8 @@ project(pspy)
 
 set(CMAKE_CXX_STANDARD 14)
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 find_package(pybind11 CONFIG REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(OpenCASCADE REQUIRED)
