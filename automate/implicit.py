@@ -1,11 +1,54 @@
+from cmath import sqrt
+from math import ceil
 import torch
 from functools import reduce
 from pspy import ImplicitPart
 from automate import HetData
 import torch
+import torch_scatter
 import numpy as np
+import os
 
-def implicit_part_to_data(part):
+def preprocess_file(file_root, file_id, ext, save_root, samples=500, ref_samples=5000, normalize=True, override=False):
+    file_path = os.path.join(file_root, f'{file_id}.{ext}')
+    save_path = os.path.join(save_root, f'{file_id}.pt')
+    if override or not os.path.exists(save_path):
+        ipart = ImplicitPart(file_path, samples, ref_samples, normalize)
+        preprocess_implicit_part(ipart, save_path, samples)
+
+def preprocess_implicit_part(ipart, save_path, samples):
+    data = implicit_part_to_data(ipart, samples)
+
+    num_faces = len(data.face_surfaces)
+    num_curves = len(data.curve_samples)
+    if num_curves > 0:
+        loop_sizes = torch_scatter.scatter_add(torch.ones_like(data.loop_to_edge[0]), data.loop_to_edge[0])
+        face_sizes = torch_scatter.scatter_add(loop_sizes[data.face_to_loop[1]], data.face_to_loop[0])
+        largest_face = face_sizes.max().item()
+    else:
+        largest_face = 0
+
+    has_nans = torch.stack([torch.isnan(data[k]).any() for k in data.keys]).any().item()
+    has_infs = torch.stack([torch.isinf(data[k]).any() for k in data.keys]).any().item()
+    surf_max = data.surface_samples[:,:,:-1].abs().max().item() if num_faces > 0 else 0.0
+    sdf_max = data.surface_samples[:,:,-1].abs().max().item() if num_faces > 0 else 0.0
+    curve_max = data.curve_samples.abs().max().item() if num_curves > 0 else 0.0
+
+    data.num_faces = num_faces
+    data.largest_face = largest_face
+    data.sdf_max = sdf_max
+    data.curve_max = curve_max
+    data.surf_max = surf_max
+    data.has_nans = has_nans
+    data.has_infs = has_infs
+    data.valid = ipart.valid
+
+    save_dir = os.path.dirname(save_path)
+    os.makedirs(save_dir, exist_ok=True)
+    torch.save(data, save_dir)
+
+def implicit_part_to_data(part, samples=500):
+    curve_size= int(ceil(sqrt(samples)))
     data = HetData()
     data.bounding_box = torch.tensor(part.bounding_box).float()
     data.face_surfaces = torch.nn.functional.one_hot(torch.tensor(part.face_surfaces, dtype=int),5).long()
@@ -27,11 +70,11 @@ def implicit_part_to_data(part):
     # Could do it with an extra indexing layer, but not important unless we need them
     data.edge_to_vertex_is_start = torch.tensor(part.edge_to_vertex_is_start).long()
     data.loop_to_edge_flipped = torch.tensor(part.loop_to_edge_flipped).long()
-    data.surface_bounds = torch.tensor(np.stack(part.surface_bounds)).float()
-    data.surface_coords = torch.tensor(np.stack(part.surface_coords)).float()
-    data.surface_samples = torch.tensor(np.stack(part.surface_samples)).float()
-    data.curve_bounds = torch.tensor(np.stack(part.curve_bounds)).float()
-    data.curve_samples = torch.tensor(np.stack(part.curve_samples)).float()
+    data.surface_bounds = torch.tensor(np.stack(part.surface_bounds)).float() if len(part.surface_bounds) > 0 else torch.empty((0,2,2))
+    data.surface_coords = torch.tensor(np.stack(part.surface_coords)).float() if len(part.surface_coords) > 0 else torch.empty((0,samples,2))
+    data.surface_samples = torch.tensor(np.stack(part.surface_samples)).float() if len(part.surface_samples) > 0 else torch.empty((0,samples,7))
+    data.curve_bounds = torch.tensor(np.stack(part.curve_bounds)).float() if len(part.curve_bounds) > 0 else torch.empty((0, 2)).float()
+    data.curve_samples = torch.tensor(np.stack(part.curve_samples)).float() if len(part.curve_samples) > 0 else torch.empty((0,curve_size,6)).float()
 
     data.__edge_sets__ = {
         'face_to_face':['face_surfaces', 'face_surfaces', 'edge_curves'],
