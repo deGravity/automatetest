@@ -225,10 +225,12 @@ BREPTopology OCCTBody::GetTopology() {
     for (auto edgefaces : edge_to_faces) {
         int edge = edgefaces.first;
         auto faces = edgefaces.second;
-        assert(faces.size() == 2);
-        int face1 = faces[0];
-        int face2 = faces[1];
-        topology.face_to_face.emplace_back(face1, face2, edge);
+        // TODO - why is this sometimes 1? Do we have open shells?
+        if (faces.size() == 2) {
+            int face1 = faces[0];
+            int face2 = faces[1];
+            topology.face_to_face.emplace_back(face1, face2, edge);
+        }
     }
 
     // Assign to structure

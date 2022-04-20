@@ -15,7 +15,7 @@ Part::Part(const std::string& path, PartOptions options)
 	}
 	_is_valid = true;
 	auto& body = bodies[0];
-
+	
 	auto bounding_box = body->GetBoundingBox();
 
 	if (options.just_bb) {
@@ -44,8 +44,9 @@ Part::Part(const std::string& path, PartOptions options)
 		}
 		bounding_box = body->GetBoundingBox();
 	}
-
+	
 	auto topology = body->GetTopology();
+	
 	auto mass_properties = body->GetMassProperties();
 	
 	if (options.tesselate) {
@@ -59,7 +60,8 @@ Part::Part(const std::string& path, PartOptions options)
 	}
 
 	brep.init(topology);
-
+	
+	
 	if (options.num_uv_samples > 0) {
 		samples.init(topology, options);
 	}
@@ -71,9 +73,10 @@ Part::Part(const std::string& path, PartOptions options)
 	if (options.num_sdf_samples > 0) {
 		mask_sdf.init(topology, options);
 	}
+	
 
 	summary.init(topology, mass_properties, bounding_box);
-
+	
 	if (options.collect_inferences) {
 		inferences.init(brep);
 	}
@@ -81,7 +84,7 @@ Part::Part(const std::string& path, PartOptions options)
 	if (options.default_mcfs) {
 		init_default_mcfs(options.onshape_style, options.default_mcfs_only_face_axes);
 	}
-
+	
 }
 
 void Part::init_default_mcfs(bool onshape_style, bool just_face_axes)
@@ -457,14 +460,14 @@ void PartSummary::init(BREPTopology& topology, MassProperties& mass_props, Eigen
 	topo_type_counts(2) = topology.vertices.size();
 	topo_type_counts(3) = topology.loops.size(); // Put loops last to match old fingerprint
 
-	surface_type_counts.resize(13);
+	surface_type_counts.resize(15);
 	surface_type_counts.setZero();
 	for (auto& face : topology.faces) {
 		int f_idx = static_cast<int>(face->function);
 		surface_type_counts(f_idx) += 1;
 	}
 
-	curve_type_counts.resize(11);
+	curve_type_counts.resize(15);
 	curve_type_counts.setZero();
 	for (auto& edge : topology.edges) {
 		int f_idx = static_cast<int>(edge->function);
