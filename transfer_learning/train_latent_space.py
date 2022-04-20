@@ -12,6 +12,7 @@ import json
 import os
 from matplotlib import pyplot as plt
 import random
+from automate import HetData
 
 def data_filter(x):
     return x['num_faces'] < 200 and x['largest_face'] < 20 and x['has_infs'] == False and x['surf_max'] < 5.0 and x['curve_max'] < 5.0
@@ -36,7 +37,13 @@ class BRepDS(torch.utils.data.Dataset):
         
             
     def __getitem__(self, idx):
-        return torch.load(self.all_paths[idx])
+        data = torch.load(self.all_paths[idx])        
+        del data['num_faces']
+        del data['largest_face']
+        del data['sdf_max']
+        del data['curve_max']
+        del data['surf_max']
+        return data
 
     def __len__(self):
         return len(self.all_paths)
@@ -120,8 +127,8 @@ if __name__ == '__main__':
     print(f'Train Set size = {len(ds)}')
     ds_val = BRepDS('D:/fusion360segmentation/simple_train_test.json', 'D:/fusion360segmentation/simple_preprocessed', 'validate')
     print(f'Val Set Size = {len(ds_val)}')
-    dl = tg.loader.DataLoader(ds, batch_size=16, shuffle=True, num_workers=8)
-    dl_val = tg.loader.DataLoader(ds_val, batch_size=1, shuffle=False, num_workers=8)
+    dl = tg.loader.DataLoader(ds, batch_size=16, shuffle=True, num_workers=0)
+    dl_val = tg.loader.DataLoader(ds_val, batch_size=1, shuffle=False, num_workers=0)
     model = BRepFaceAutoencoder(32, 1024,4)
     #sd = torch.load('best-gen-implicit-weights.ckpt')['state_dict']
     #model.load_state_dict(sd)
@@ -134,5 +141,5 @@ if __name__ == '__main__':
             )
         ]
     logger = TensorBoardLogger('D:/fusion360segmentation/runs/encdec','nofilter')
-    trainer = pl.Trainer(gpus=1, max_epochs=100, track_grad_norm=2, callbacks=callbacks, logger=logger)
+    trainer = pl.Trainer(gpus=0, max_epochs=100, track_grad_norm=2, callbacks=callbacks, logger=logger)
     trainer.fit(model, dl, val_dataloaders=dl_val)
