@@ -7,7 +7,9 @@ import pyrender
 import os
 import torch
 from typing import Tuple
-os.environ['PYOPENGL_PLATFORM'] = 'egl'
+import platform
+if platform.system() != 'Windows':
+    os.environ['PYOPENGL_PLATFORM'] = 'egl'
 
 class FixedGridPredictor(pl.LightningModule, ArgparseInitialized):
 

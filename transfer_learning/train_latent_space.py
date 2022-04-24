@@ -13,28 +13,45 @@ import os
 from matplotlib import pyplot as plt
 import random
 from automate import HetData
+from reproducibility import create_subset
 
 def data_filter(x):
     return x['num_faces'] < 200 and x['largest_face'] < 20 and x['has_infs'] == False and x['surf_max'] < 5.0 and x['curve_max'] < 5.0
 
 class BRepDS(torch.utils.data.Dataset):
-    def __init__(self, splits, data_root, mode='train', validate_pct=5, preshuffle=True):
+    def __init__(
+        self, 
+        splits, 
+        data_root, 
+        mode='train', 
+        validate_pct=5, 
+        preshuffle=True,
+        label_root = None,
+        label_ext = None,
+        seed = None,
+        size = None):
 
         split = mode
         if mode=='validate':
             split = 'train'
 
         with open(splits, 'r') as f:
-            self.all_paths = [os.path.join(data_root, f'{id}.pt') for id in json.load(f)[split]]
+            ids = json.load(f)[split]
         
+        if seed and size:
+            ids = create_subset(ids, seed, size)
+
         if preshuffle:
-            random.shuffle(self.all_paths)
+            random.shuffle(ids)
 
         if mode=='train':
-            self.all_paths = [x for i,x in enumerate(self.all_paths) if i % 100 <= (100 - validate_pct)]
+            ids = [x for i,x in enumerate(ids) if i % 100 <= (100 - validate_pct)]
         elif mode=='validate':
-            self.all_paths = [x for i,x in enumerate(self.all_paths) if i % 100 > (100 - validate_pct)]
+            ids = [x for i,x in enumerate(ids) if i % 100 > (100 - validate_pct)]
         
+        self.all_paths = [os.path.join(data_root, f'{id}.pt') for id in ids]
+        self.all_labels = [os.path.join(label_root, f'{id}.{label_ext}') for id in ids] if label_root and label_ext else None
+
             
     def __getitem__(self, idx):
         data = torch.load(self.all_paths[idx])        
@@ -43,6 +60,11 @@ class BRepDS(torch.utils.data.Dataset):
         del data['sdf_max']
         del data['curve_max']
         del data['surf_max']
+        if self.all_labels:
+            with open(self.all_labels[idx], 'r') as f:
+                labels = [int(x.strip()) for x in f.readlines()]
+        data.labels = torch.tensor(labels).long()
+        data.__node_sets__.add('labels')
         return data
 
     def __len__(self):
@@ -85,6 +107,10 @@ class BRepFaceAutoencoder(pl.LightningModule):
         uv_codes = torch.cat([uv, indexed_codes], dim=1)
         pred = self.decoder(uv_codes)
         return pred
+    
+    def encode(self, data):
+        with torch.no_grad():
+            return self.encoder(data)
 
     def training_step(self, data, batch_idx):
         codes = self.encoder(data)
@@ -95,7 +121,8 @@ class BRepFaceAutoencoder(pl.LightningModule):
         target[torch.isinf(target)] = -0.01
         pred = self.decoder(uv_codes).reshape_as(target)
         loss = torch.nn.functional.mse_loss(pred, target)
-        self.log('train_loss', loss)
+        batch_size = data.surface_coords.shape[0]
+        self.log('train_loss', loss, batch_size=batch_size, on_epoch=True, on_step=True)
         return loss
 
     def validation_step(self, data, batch_idx):
@@ -106,11 +133,12 @@ class BRepFaceAutoencoder(pl.LightningModule):
         target = torch.cat([data.surface_samples[:,:,:3],data.surface_samples[:,:,-1].unsqueeze(-1)],dim=-1)
         pred = self.decoder(uv_codes).reshape_as(target)
         loss = torch.nn.functional.mse_loss(pred, target)
-        self.log('val_loss', loss)
+        batch_size = data.surface_coords.shape[0]
+        self.log('val_loss', loss, batch_size=batch_size, on_epoch=True, on_step=True)
 
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
         return optimizer
     
     def visualize_losses(self, data):
@@ -127,9 +155,9 @@ if __name__ == '__main__':
     print(f'Train Set size = {len(ds)}')
     ds_val = BRepDS('D:/fusion360segmentation/simple_train_test.json', 'D:/fusion360segmentation/simple_preprocessed', 'validate')
     print(f'Val Set Size = {len(ds_val)}')
-    dl = tg.loader.DataLoader(ds, batch_size=16, shuffle=True, num_workers=0)
-    dl_val = tg.loader.DataLoader(ds_val, batch_size=1, shuffle=False, num_workers=0)
-    model = BRepFaceAutoencoder(32, 1024,4)
+    dl = tg.loader.DataLoader(ds, batch_size=8, shuffle=True, num_workers=8, persistent_workers=True)
+    dl_val = tg.loader.DataLoader(ds_val, batch_size=1, shuffle=False, num_workers=8, persistent_workers=True)
+    model = BRepFaceAutoencoder(64, 1024,4)
     #sd = torch.load('best-gen-implicit-weights.ckpt')['state_dict']
     #model.load_state_dict(sd)
     callbacks = [
@@ -138,8 +166,11 @@ if __name__ == '__main__':
             ),
             pl.callbacks.ModelCheckpoint(
                 monitor='val_loss', save_top_k=1, filename="{epoch}-{val_loss:.6f}",mode="min",
-            )
+            ),
+            pl.callbacks.early_stopping.EarlyStopping(
+                    monitor='val_loss', mode='min', patience=8
+                )
         ]
-    logger = TensorBoardLogger('D:/fusion360segmentation/runs/encdec','nofilter')
-    trainer = pl.Trainer(gpus=0, max_epochs=100, track_grad_norm=2, callbacks=callbacks, logger=logger)
+    logger = TensorBoardLogger('D:/fusion360segmentation/runs/encdec','nofilter64e3')
+    trainer = pl.Trainer(gpus=1, max_epochs=-1, track_grad_norm=2, callbacks=callbacks, logger=logger, gradient_clip_val=0.5)
     trainer.fit(model, dl, val_dataloaders=dl_val)

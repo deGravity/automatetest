@@ -10,7 +10,9 @@ import numpy as np
 import pyrender
 import trimesh
 import os
-os.environ['PYOPENGL_PLATFORM'] = 'egl'
+import platform
+if platform.system() != 'Windows':
+    os.environ['PYOPENGL_PLATFORM'] = 'egl'
 
 class SimplePartDataModule(pl.LightningDataModule, ArgparseInitialized):
         
