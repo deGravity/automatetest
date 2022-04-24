@@ -74,7 +74,6 @@ Part::Part(const std::string& path, PartOptions options)
 		mask_sdf.init(topology, options);
 	}
 	
-
 	summary.init(topology, mass_properties, bounding_box);
 	
 	if (options.collect_inferences) {

@@ -24,15 +24,11 @@ int main(int argc, char** argv) {
     options.default_mcfs = false;
     options.tesselate = false;
 
-    auto part = Part("C:/Users/Ben/research/crash.stp", options);
-    //auto part = Part(TEST_STEP, options);
-    std::cout << part._is_valid << std::endl;
+    auto part_x_t = Part(TEST_X_T, options);
+    auto part_step = Part(TEST_STEP, options);
+    std::cout << part_x_t._is_valid << std::endl;
+    std::cout << part_step._is_valid << std::endl;
     
-
-    // Simple Test of KD-Tree
-
-    //auto ipart_xt = ImplicitPart(TEST_X_T, 500, 5000, true);
-    //auto ipart_step = ImplicitPart(TEST_STEP, 500, 5000, true);
 
     return 0;
 }
