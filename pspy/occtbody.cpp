@@ -45,10 +45,11 @@ std::vector<std::shared_ptr<Body>> read_step(std::string path) {
         ret = reader.ReadStream("rawtext", path_ss);
     }
     if (ret == IFSelect_RetDone) {
-        reader.TransferRoots();
-        TopoDS_Shape shape = reader.OneShape();
-		
-        parts_vec.emplace_back(new OCCTBody(shape));
+        auto num_roots = reader.TransferRoots();
+        if (num_roots == 1) {
+            TopoDS_Shape shape = reader.OneShape();
+            parts_vec.emplace_back(new OCCTBody(shape));
+        }
     }
 
     return parts_vec;
