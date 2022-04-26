@@ -154,9 +154,10 @@ BREPTopology PSBody::GetTopology() {
     for (auto edgeloop : edge_to_loop) {
         int edge = edgeloop.first;
         auto loops = edgeloop.second;
-        assert(loops.size() == 2);
+        // Account for self-adjacent faces
+        assert(loops.size() > 0 && loops.size() <= 2);
         int face1 = loop_to_face[loops[0]];
-        int face2 = loop_to_face[loops[1]];
+        int face2 = loop_to_face[loops[loops.size()-1]];
         topology.face_to_face.emplace_back(face1, face2, edge);
     }
 
