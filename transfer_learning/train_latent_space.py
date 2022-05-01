@@ -63,8 +63,8 @@ class BRepDS(torch.utils.data.Dataset):
         if self.all_labels:
             with open(self.all_labels[idx], 'r') as f:
                 labels = [int(x.strip()) for x in f.readlines()]
-        data.labels = torch.tensor(labels).long()
-        data.__node_sets__.add('labels')
+            data.labels = torch.tensor(labels).long()
+            data.__node_sets__.add('labels')
         return data
 
     def __len__(self):
