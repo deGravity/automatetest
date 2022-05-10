@@ -155,6 +155,7 @@ ImplicitPart::ImplicitPart(
 		ordered_loop_flipped[loop_idx].push_back(loop_to_edge_flipped[i]);
 	}
 	// Iteratively search for next-closest edge. Inefficient but accurate
+	/*
 	for (int l = 0; l < n_loops; ++l) {
 		for (int i = 0; i < ordered_loop_edge[l].size() - 1; ++i) {
 			auto curr_end = topology.edges[ordered_loop_edge[l][i]]->end;
@@ -179,6 +180,7 @@ ImplicitPart::ImplicitPart(
 			ordered_loop_flipped[l][closest_start_idx] = temp_flipped;
 		}
 	}
+	*/
 
 	if (normalize && valid) {
 		// Get Scaling Transformation

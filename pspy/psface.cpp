@@ -969,6 +969,13 @@ bool PSFace::sample_surface(
             normal.coord[1] = 0;
             normal.coord[2] = 0;
         }
+        else if (err == PK_ERROR_eval_failure) {
+            // Assume eval error is in normal calculation (common in cones)
+            // and set norm to 0 in these cases
+            normal.coord[0] = 0;
+            normal.coord[1] = 0;
+            normal.coord[2] = 0;
+        }
         else if (err != PK_ERROR_no_errors) {
             return false; // Break if other error in evaluation
         }

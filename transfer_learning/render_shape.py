@@ -28,6 +28,22 @@ def predict(data, model, N=100):
         preds = model(data, grids, indices)
     return preds
 
+def plot_part(p):
+    e_i = np.concatenate([
+        p.mesh_topology.edge_to_topology[:,1],
+        p.mesh_topology.edge_to_topology[:,2],
+        p.mesh_topology.edge_to_topology[:,0]
+    ])
+    e_i = e_i[e_i >= 0]
+    f_i = p.mesh_topology.face_to_topology
+    e = np.concatenate([
+        p.mesh.F[:,[0,1]][(p.mesh_topology.edge_to_topology[:,1] >= 0)],
+        p.mesh.F[:,[1,2]][(p.mesh_topology.edge_to_topology[:,2] >= 0)],
+        p.mesh.F[:,[2,0]][(p.mesh_topology.edge_to_topology[:,0] >= 0)]
+    ],axis=0)
+    plot = mp.plot(p.mesh.V, p.mesh.F, return_plot=True)
+    plot.add_edges(p.mesh.V, e)
+plot_part(p)
 
 def plot_edges(m, plot):
     all_lines = []

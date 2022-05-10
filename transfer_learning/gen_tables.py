@@ -5,6 +5,18 @@ from argparse import ArgumentParser
 import os
 import json
 
+def compute_accuracies(results):
+    labels = np.array(results['labels'])
+    test_omitted_samples = results['test_omitted_samples']
+    accuracies = {}
+    for k,v in results['logits'].items():
+        accuracies[k] = []
+        for l in v:
+            preds = np.array(l).argmax(axis=1)
+            acc = (preds == labels).sum() / (len(preds) + test_omitted_samples)
+            accuracies[k].append(acc)
+    results['acc'] = accuracies
+
 def format_experiments(
     experiments,
     preferred_metrics = dict(),
@@ -15,7 +27,8 @@ def format_experiments(
     omitted_experiments = [], # [(ds, model)]
     omitted_datasets = [], # [str]
     ommitted_models = [], #  [str]
-    placeholder_experiments = [] # [(ds, model, metric, num_sizes),...]
+    placeholder_experiments = [], # [(ds, model, metric, num_sizes),...]
+    ignore_keys = ['checkpoint', 'labels', 'logits', 'train_samples', 'test_omitted_samples']
 ):
 
     metric_transform = lambda x: metric_renames.get(x,x) if isinstance(metric_renames, dict) else metric_renames
@@ -35,6 +48,8 @@ def format_experiments(
             continue
         exp_metrics = {}
         for k,v in exp.items():
+            if k in ignore_keys:
+                continue
             if isinstance(v, dict):
                 metric = {'name':k,'size':len(v),'sizes':[],'means':[],'stds':[]}
                 for s,m in v.items():
