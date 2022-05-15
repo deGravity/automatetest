@@ -6,6 +6,43 @@ import os
 import random
 import pickle
 from pspy import Part, ImplicitPart, PartOptions
+from functools import cache
+
+class CachedDataset(Dataset):
+    def __init__(self, ds, cache_dir = None, memcache = False):
+        super().__init__()
+        self.ds = ds
+        self.memcache = memcache
+        self.cache_dir = cache_dir
+
+    def __len__(self):
+        return len(self.ds)
+
+    def __getitem__(self, idx):
+        if (res := self.get_memcached(idx)):
+            pass
+        elif (res := self.get_filecached(idx)):
+            pass
+        else:
+            res = self.ds[idx]
+        self.cache_file(res, idx)
+        self.cache_mem(res, idx)
+        return res
+
+    def get_memcached(self, idx):
+        if self.memcache:
+            if not self.cache:
+                self.cache = dict()
+            return self.cache.get(idx, None)
+        return None
+    
+    def get_filecached(self, idx):
+        if self.cache_dir:
+            cache_path = os.path.join(self.cache_dir, idx)
+            if os.path.exists(cache_path):
+                return torch.load(cache_path)
+        return None
+        
 
 class PartDataset(Dataset):
     def __init__(
