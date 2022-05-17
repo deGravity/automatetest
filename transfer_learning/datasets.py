@@ -17,74 +17,6 @@ def create_subset(data, seed, size):
     random.seed(seed)
     return random.sample(data, size)
 
-def automate_options():
-    feature_opts = PartFeatures()
-
-    # No Part Level Features
-    feature_opts.face_samples = False
-    feature_opts.edge_samples = False
-    feature_opts.bounding_box = False
-    feature_opts.volume = False
-    feature_opts.center_of_gravity = False
-    feature_opts.moment_of_inertia = False
-    feature_opts.surface_area = False
-    feature_opts.samples = False
-    feature_opts.mesh = False
-    feature_opts.mesh_to_topology = False
-    feature_opts.mcfs = False
-
-    # Face Features
-    feature_opts.face.parametric_function = True
-    feature_opts.face.parameter_values = True
-    feature_opts.face.exclude_origin = True
-
-    feature_opts.face.surface_area = True
-    feature_opts.face.bounding_box = True
-    feature_opts.face.moment_of_inertia = True
-    feature_opts.face.center_of_gravity = True
-
-    feature_opts.face.orientation = False
-    feature_opts.face.circumference = False
-    feature_opts.face.na_bounding_box = False
-
-    # Loop Features
-    feature_opts.loop.type = True
-    feature_opts.loop.length = True
-    feature_opts.loop.center_of_gravity = True
-    feature_opts.loop.moment_of_inertia = True
-    feature_opts.loop.na_bounding_box = False
-
-    # Edge Features
-    feature_opts.edge.parametric_function = True
-    feature_opts.edge.orientation = True
-    feature_opts.edge.length = True
-    feature_opts.edge.bounding_box = True
-    feature_opts.edge.center_of_gravity = True
-    feature_opts.edge.moment_of_inertia = True
-    feature_opts.edge.t_range = False
-    feature_opts.edge.start = False
-    feature_opts.edge.end = False
-    feature_opts.edge.mid_point = False
-    feature_opts.edge.na_bounding_box = False
-
-    # Vertex Features
-    feature_opts.vertex.position = True
-
-    part_options = {'collect_inferences': False,
-    'default_mcfs': False,
-    'just_bb': False,
-    'normalize': False,
-    'num_random_samples': 0,
-    'num_sdf_samples': 0,
-    'num_uv_samples': 0,
-    'sample_normals': False,
-    'sample_tangents': False,
-    'sdf_sample_quality': 0,
-    'tesselate': False,
-    'transform': False}
-
-    return part_options, feature_opts, (42, 23, 46, 3, 64, 6)
-
 class DataSubset(Dataset):
     def __init__(self, ds, size, seed, mode='train', val_frac=0.0, no_stratify=False):
         super().__init__()
@@ -296,7 +228,7 @@ class BRepDataModule(LightningDataModule):
 
         self.batch_size = min(batch_size, len(self.ds_train))
 
-        
+
 
         
     
