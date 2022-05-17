@@ -1,37 +1,138 @@
-from zipfile import ZipFile
-import torch
-from torch.utils.data import Dataset
+from collections import Counter
 import json
+from math import ceil
 import os
 import random
-import pickle
-from pspy import Part, ImplicitPart, PartOptions
+from zipfile import ZipFile
+
+from pytorch_lightning import LightningDataModule
+from sklearn.model_selection import train_test_split
+import torch
+from torch.utils.data import Dataset
+
 from automate import part_to_graph, PartFeatures, implicit_part_to_data
-from functools import cache
+from pspy import Part, ImplicitPart, PartOptions
 
-'''
-Dataset structure:
+def create_subset(data, seed, size):
+    random.seed(seed)
+    return random.sample(data, size)
 
-Low Level: Index + Zip or Directory -> Part Object / PyGeo + Labels
-Mid Level: Caching: In Memory and / or On Disk
-High Level: Subsetting - let us change subsets without losing cache
+def automate_options():
+    feature_opts = PartFeatures()
 
-Considerations:
+    # No Part Level Features
+    feature_opts.face_samples = False
+    feature_opts.edge_samples = False
+    feature_opts.bounding_box = False
+    feature_opts.volume = False
+    feature_opts.center_of_gravity = False
+    feature_opts.moment_of_inertia = False
+    feature_opts.surface_area = False
+    feature_opts.samples = False
+    feature_opts.mesh = False
+    feature_opts.mesh_to_topology = False
+    feature_opts.mcfs = False
 
-Mode: train and test have unique index set numbers, but only one should
-be subset or split for validation.
+    # Face Features
+    feature_opts.face.parametric_function = True
+    feature_opts.face.parameter_values = True
+    feature_opts.face.exclude_origin = True
 
-Cache-Retention: It would be great to keep the in-memory cache between
-experiments, but this would require keeping the data loaders alive while
-somehow changing their underlying data sets.
+    feature_opts.face.surface_area = True
+    feature_opts.face.bounding_box = True
+    feature_opts.face.moment_of_inertia = True
+    feature_opts.face.center_of_gravity = True
 
-Labels: mfcad and fusion360seg have similar label structures. We could
-do the same for automate, or just load the labels into the index jsons
-on everything once and have a more consistent labeling structure. Labels
-also make validation sampling trickier since we want to do stratified
-sampling in these cases.
+    feature_opts.face.orientation = False
+    feature_opts.face.circumference = False
+    feature_opts.face.na_bounding_box = False
 
-'''
+    # Loop Features
+    feature_opts.loop.type = True
+    feature_opts.loop.length = True
+    feature_opts.loop.center_of_gravity = True
+    feature_opts.loop.moment_of_inertia = True
+    feature_opts.loop.na_bounding_box = False
+
+    # Edge Features
+    feature_opts.edge.parametric_function = True
+    feature_opts.edge.orientation = True
+    feature_opts.edge.length = True
+    feature_opts.edge.bounding_box = True
+    feature_opts.edge.center_of_gravity = True
+    feature_opts.edge.moment_of_inertia = True
+    feature_opts.edge.t_range = False
+    feature_opts.edge.start = False
+    feature_opts.edge.end = False
+    feature_opts.edge.mid_point = False
+    feature_opts.edge.na_bounding_box = False
+
+    # Vertex Features
+    feature_opts.vertex.position = True
+
+    part_options = {'collect_inferences': False,
+    'default_mcfs': False,
+    'just_bb': False,
+    'normalize': False,
+    'num_random_samples': 0,
+    'num_sdf_samples': 0,
+    'num_uv_samples': 0,
+    'sample_normals': False,
+    'sample_tangents': False,
+    'sdf_sample_quality': 0,
+    'tesselate': False,
+    'transform': False}
+
+    return part_options, feature_opts, (42, 23, 46, 3, 64, 6)
+
+class DataSubset(Dataset):
+    def __init__(self, ds, size, seed, mode='train', val_frac=0.0, no_stratify=False):
+        super().__init__()
+        self.ds = ds
+        if size > 0 and size < 1:
+            fraction = size # Used for stratified sampling
+            size = ceil(len(ds)*size)
+        elif size < 0:
+            size = len(ds)
+        
+        self.size = size
+        self.seed = seed
+
+        stratify_sampling = False
+        if not no_stratify and hasattr(ds, 'labels'):
+            if all([len(l) == 1 for l in ds.labels]):
+                stratify_sampling = True
+
+        if stratify_sampling:
+            category_counts = Counter([l[0] for l in ds.labels])
+            num_categories = max([l[0] for l in ds.labels])
+            cat_seed = lambda cat_enc: cat_enc + seed*num_categories
+            def subset_category(cat, fraction):
+                return create_subset(
+                    [i for i,l in enumerate(ds['labels']) if l[0] == cat],
+                    cat_seed(cat),
+                    max(2, ceil(fraction*category_counts[cat]))
+                )
+            indices = [i for cat in category_counts for i in subset_category(cat, fraction)]
+            val_frac = val_frac if ceil(val_frac*len(indices) >= num_categories) else num_categories
+        else:
+            indices = create_subset(range(len(ds)), seed, size)
+
+        if mode in ['train', 'validate'] and val_frac > 0:
+            train_indices, val_indices = train_test_split(
+               indices, test_size=val_frac, random_state=seed,
+               stratify=[ds['labels'][i][0] for i in indices] if stratify_sampling else None
+            )
+            indices = train_indices if mode == 'train' else val_indices
+        
+        self.indices = indices
+
+        
+    def __getitem__(self, idx):
+        return self.ds[self.indices[idx]]
+
+    def __len__(self):
+        return len(self.indices)
 
 class CachedDataset(Dataset):
     def __init__(self, ds, cache_dir = None, memcache = False):
@@ -41,6 +142,7 @@ class CachedDataset(Dataset):
         self.cache_dir = cache_dir
         if hasattr(ds, 'labels'):
             self.labels = ds.labels
+        self.cache = None
 
     def __len__(self):
         return len(self.ds)
@@ -70,13 +172,19 @@ class CachedDataset(Dataset):
                 return torch.load(cache_path)
         return None
     
-    def cache_file(self, idx):
+    def cache_file(self, val, idx):
         if self.cache_dir:
             cache_path = os.path.join(self.cache_dir, f'{idx}.pt')
             if not os.path.exists(cache_path):
                 cache_dir = os.path.dirname(cache_path)
                 os.makedirs(cache_dir, exist_ok=True)
-                torch.save(cache_path)
+                torch.save(val, cache_path)
+    
+    def cache_mem(self, val, idx):
+        if self.memcache:
+            if not self.cache:
+                self.cache = dict()
+            self.cache[idx] = val
         
 
 class PartDataset(Dataset):
@@ -104,6 +212,7 @@ class PartDataset(Dataset):
         self.implicit = implicit
         self.feature_options = feature_options
         self.implicit_options = implicit_options
+        self.datafile = None
 
     def get_options_struct(self):
         options = PartOptions()
@@ -113,7 +222,7 @@ class PartDataset(Dataset):
         return options
 
     def __len__(self):
-        pass
+        return len(self.ids)
 
     def __getitem__(self, idx):
         model_path = self.template.format(*self.ids[idx])
@@ -143,3 +252,51 @@ class PartDataset(Dataset):
 
         return graph
 
+class BRepDataModule(LightningDataModule):
+    def __init__(
+        self,
+        index_path: str, 
+        data_path: str,  
+        part_options: dict = {},
+        implicit: bool = True,
+        feature_options: PartFeatures = PartFeatures(),
+        implicit_options: dict = {},
+        val_frac = 0.2,
+        seed=0,
+        batch_size=32,
+        train_size=-1,
+        cache_dir=None,
+        memcache=True,
+        no_stratify=False
+    ):
+        super().__init__()
+        part_ds_train = PartDataset(
+            index_path,
+            data_path,
+            mode = 'train',
+            part_options=part_options,
+            implicit = implicit,
+            feature_options=feature_options,
+            implicit_options=implicit_options
+        )
+        part_ds_test = PartDataset(
+            index_path,
+            data_path,
+            mode = 'test',
+            part_options=part_options,
+            implicit = implicit,
+            feature_options=feature_options,
+            implicit_options=implicit_options
+        )
+
+        cache_ds_train = CachedDataset(part_ds_train, memcache=memcache, cache_dir=os.path.join(cache_dir,'train'))
+        self.ds_train = DataSubset(cache_ds_train, train_size, seed, val_frac=val_frac, mode='train',no_stratify=no_stratify)
+        self.ds_val = DataSubset(cache_ds_train, train_size, seed, val_frac=val_frac, mode='validate', no_stratify=no_stratify)
+        self.ds_test = CachedDataset(part_ds_test, memcache=memcache, cache_dir=os.path.join(cache_dir,'test'))
+
+        self.batch_size = min(batch_size, len(self.ds_train))
+
+        
+
+        
+    
