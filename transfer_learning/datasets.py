@@ -9,7 +9,7 @@ from pytorch_lightning import LightningDataModule
 from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import Dataset
-from torch_geometric.data.dataloader import DataLoader
+from torch_geometric.loader import DataLoader
 
 from automate import part_to_graph, PartFeatures, implicit_part_to_data
 from pspy import Part, ImplicitPart, PartOptions
@@ -57,7 +57,12 @@ class DataSubset(Dataset):
                stratify=[ds['labels'][i][0] for i in indices] if stratify_sampling else None
             )
             indices = train_indices if mode == 'train' else val_indices
-        
+
+        if hasattr(ds, 'labels'):
+            self.num_classes = max([max(L) for L in ds.labels])
+        else:
+            self.num_classes = 1
+
         self.indices = indices
 
         
@@ -229,6 +234,8 @@ class BRepDataModule(LightningDataModule):
 
         self.batch_size = batch_size
 
+        self.num_classes = self.ds_train.num_classes
+
         def train_dataloader(self):
             return DataLoader(
                 self.ds_train, 
@@ -248,7 +255,3 @@ class BRepDataModule(LightningDataModule):
         def test_dataloader(self):
             return DataLoader(self.ds_test, batch_size=1, shuffle=False)
 
-
-
-        
-    

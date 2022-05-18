@@ -6,11 +6,12 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
 import os
+import torch
 
 from automate import PartFeatures, SBGCN
 from automate.sbgcn import LinearBlock
 
-from .datasets import BRepDataModule
+from datasets import BRepDataModule
 
 def automate_options():
     feature_opts = PartFeatures()
@@ -117,6 +118,8 @@ class SBGCNBaseline(LightningModule):
         batch_size = len(targets)
         self.test_acc(preds, targets)
         self.log('test_acc', self.test_acc, batch_size, on_step=False, on_epoch=True)
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters())
 
 def run_experiments(
     index_path, 
@@ -129,9 +132,8 @@ def run_experiments(
     batch_size=32,):
     
     ds_name = os.path.basename(index_path).split('.')[0]
-    
+
     part_options, feature_options, sbgcn_options = automate_options()
-    
 
     for seed in seeds:
         for exp_size in experiment_sizes:
@@ -142,14 +144,14 @@ def run_experiments(
                 implicit=False,
                 feature_options=feature_options,
                 val_frac=val_frac,
-                seed = seed,
+                seed=seed,
                 batch_size=batch_size,
                 train_size=exp_size,
                 cache_dir=cache_dir,
                 memcache=True
             )
             exp_name = f'{ds_name}_sbgcn_{exp_size}_{seed}'
-            model = SBGCNBaseline(sbgcn_options, 64)
+            model = SBGCNBaseline(sbgcn_options, 64, datamodule.num_classes)
             callbacks = [
                     #EarlyStopping(monitor='val_loss', mode='min', patience=100),
                     ModelCheckpoint(monitor='val_loss', save_top_k=1, filename="{epoch}-{val_loss:.6f}",mode="min"),
