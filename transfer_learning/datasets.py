@@ -9,6 +9,7 @@ from pytorch_lightning import LightningDataModule
 from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import Dataset
+from torch_geometric.data.dataloader import DataLoader
 
 from automate import part_to_graph, PartFeatures, implicit_part_to_data
 from pspy import Part, ImplicitPart, PartOptions
@@ -226,7 +227,26 @@ class BRepDataModule(LightningDataModule):
         self.ds_val = DataSubset(cache_ds_train, train_size, seed, val_frac=val_frac, mode='validate', no_stratify=no_stratify)
         self.ds_test = CachedDataset(part_ds_test, memcache=memcache, cache_dir=os.path.join(cache_dir,'test'))
 
-        self.batch_size = min(batch_size, len(self.ds_train))
+        self.batch_size = batch_size
+
+        def train_dataloader(self):
+            return DataLoader(
+                self.ds_train, 
+                batch_size=min(len(self.ds_train), self.batch_size), 
+                shuffle=True, 
+                num_workers=8, 
+                persistent_workers=True
+            )
+
+        def val_dataloader(self):
+            return DataLoader(
+                self.ds_val, 
+                batch_size=min(len(self.ds_val),self.batch_size), 
+                shuffle=False
+            )
+
+        def test_dataloader(self):
+            return DataLoader(self.ds_test, batch_size=1, shuffle=False)
 
 
 
