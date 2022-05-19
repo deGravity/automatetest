@@ -43,7 +43,18 @@ def plot_part(p):
     ],axis=0)
     plot = mp.plot(p.mesh.V, p.mesh.F, return_plot=True)
     plot.add_edges(p.mesh.V, e)
-plot_part(p)
+
+def plot_part_data(m, grid_pred, interior = True):
+    mask = (grid_pred[:,-1] <= 0)#(grid_pred[:,:,-1] <= 0).flatten()
+
+    positions = grid_pred[:,:3]#.reshape((-1,3))
+    dists = grid_pred[:,-1]#.flatten()
+
+    masked_positions = positions[mask] if interior else positions
+    masked_dists = dists[mask] if interior else dists
+
+    plot = mp.plot(masked_positions.numpy(), c=masked_dists.numpy(), shading={'point_size':0.1}, return_plot=True)
+    plot_edges(m, plot)
 
 def plot_edges(m, plot):
     all_lines = []

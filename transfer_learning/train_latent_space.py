@@ -41,7 +41,7 @@ class BRepDS(torch.utils.data.Dataset):
         if seed and size:
             ids = create_subset(ids, seed, size)
 
-        if preshuffle:
+        if preshuffle and mode in ['train','validate']:
             random.shuffle(ids)
 
         if mode=='train':

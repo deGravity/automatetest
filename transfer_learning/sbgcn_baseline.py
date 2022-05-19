@@ -85,7 +85,7 @@ class SBGCNBaseline(LightningModule):
     def __init__(self, sbgcn_options, out_hidden_size, out_size):
         super().__init__()
         self.sbgcn = SBGCN(*sbgcn_options)
-        self.output_mlp = LinearBlock(128, out_hidden_size, out_size, last_linear=True)
+        self.output_mlp = LinearBlock(64, out_hidden_size, out_size, last_linear=True)
         self.train_acc = Accuracy()
         self.val_acc = Accuracy()
         self.test_acc = Accuracy()
@@ -99,8 +99,8 @@ class SBGCNBaseline(LightningModule):
         loss = cross_entropy(scores, targets)
         batch_size = len(targets)
         self.log('train_loss', loss, batch_size=batch_size, on_step=True, on_epoch=True)
-        self.train_acc(preds, targets)
-        self.log('train_acc', self.train_acc, batch_size, on_step=True, on_epoch=True)
+        #self.train_acc(preds, targets)
+        #self.log('train_acc', self.train_acc, batch_size, on_step=True, on_epoch=True)
         return loss
     def validation_step(self, batch, batch_idx):
         scores = self(batch)
@@ -108,9 +108,9 @@ class SBGCNBaseline(LightningModule):
         targets = batch.labels
         loss = cross_entropy(scores, targets)
         batch_size = len(targets)
-        self.log(loss, 'val_loss', batch_size=batch_size, on_step=True, on_epoch=True)
-        self.val_acc(preds, targets)
-        self.log('val_acc', self.val_acc, batch_size, on_step=False, on_epoch=True)
+        self.log('val_loss', loss, batch_size=batch_size, on_step=True, on_epoch=True)
+        #self.val_acc(preds, targets)
+        #self.log('val_acc', self.val_acc, batch_size, on_step=False, on_epoch=True)
     def test_step(self, batch, batch_idx):
         scores = self(batch)
         preds = scores.argmax(dim=1)
@@ -132,7 +132,7 @@ def run_experiments(
     batch_size=32,):
     
     ds_name = os.path.basename(index_path).split('.')[0]
-
+    
     part_options, feature_options, sbgcn_options = automate_options()
 
     for seed in seeds:
@@ -144,7 +144,7 @@ def run_experiments(
                 implicit=False,
                 feature_options=feature_options,
                 val_frac=val_frac,
-                seed=seed,
+                seed = seed,
                 batch_size=batch_size,
                 train_size=exp_size,
                 cache_dir=cache_dir,
@@ -154,11 +154,24 @@ def run_experiments(
             model = SBGCNBaseline(sbgcn_options, 64, datamodule.num_classes)
             callbacks = [
                     #EarlyStopping(monitor='val_loss', mode='min', patience=100),
-                    ModelCheckpoint(monitor='val_loss', save_top_k=1, filename="{epoch}-{val_loss:.6f}",mode="min"),
+                    #ModelCheckpoint(monitor='val_loss', save_top_k=1, filename="{epoch}-{val_loss:.6f}",mode="min"),
                 ]
             logger = TensorBoardLogger(log_dir, exp_name)
-            trainer = pl.Trainer(max_epochs=-1, logger=logger, callbacks=callbacks, gpus=1)
+            trainer = pl.Trainer(max_epochs=-1, logger=logger, callbacks=callbacks)
             trainer.fit(model,datamodule)
             results = trainer.test(datamodule=datamodule)
             test_accuracy = results[0]['test_acc']
-            
+
+
+def main():
+    ipath = 'D:/cad/mfcad.json'
+    dpath = 'D:/cad/mfcad.zip'
+    exp_sizes = [-1]
+    seeds = [0]
+    cache_dir = 'D:/cad/mfcad_part_cache'
+    log_dir = 'D:/tensorboards/mfcad_part_test'
+
+    run_experiments(ipath, dpath, exp_sizes, seeds, cache_dir, log_dir)
+
+if __name__ == '__main__':
+    main()

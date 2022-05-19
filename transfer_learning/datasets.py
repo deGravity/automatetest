@@ -59,7 +59,7 @@ class DataSubset(Dataset):
             indices = train_indices if mode == 'train' else val_indices
 
         if hasattr(ds, 'labels'):
-            self.num_classes = max([max(L) for L in ds.labels])
+            self.num_classes = max([max(L) for L in ds.labels]) + 1
         else:
             self.num_classes = 1
 
@@ -146,6 +146,8 @@ class PartDataset(Dataset):
             self.labels = index.get(f'{mode}_labels', index['train_labels'])
             assert(len(ids) == len(self.labels))
         self.data_path = data_path
+        if implicit and len(part_options) == 0:
+            part_options = [500, 5000, True]
         self.part_options = part_options
         self.implicit = implicit
         self.feature_options = feature_options
@@ -170,13 +172,13 @@ class PartDataset(Dataset):
             with self.datafile.open(model_path, 'r') as f:
                 model_data = f.read()
                 if self.implicit:
-                    model = ImplicitPart(model_data, **self.part_options)
+                    model = ImplicitPart(model_data, *self.part_options)
                 else:
                     model = Part(model_data, self.get_options_struct())
         else: # Read from directory
             model_path = os.path.join(self.data_path, model_path)
             if self.implicit:
-                model = ImplicitPart(model_path, **self.part_options)
+                model = ImplicitPart(model_path, *self.part_options)
             else:
                 model = Part(model_path, self.get_options_struct())
         
@@ -227,31 +229,33 @@ class BRepDataModule(LightningDataModule):
             implicit_options=implicit_options
         )
 
-        cache_ds_train = CachedDataset(part_ds_train, memcache=memcache, cache_dir=os.path.join(cache_dir,'train'))
+        train_cache_dir = os.path.join(cache_dir,'train') if cache_dir else None
+        test_cache_dir = os.path.join(cache_dir,'test') if cache_dir else None
+        cache_ds_train = CachedDataset(part_ds_train, memcache=memcache, cache_dir=train_cache_dir)
         self.ds_train = DataSubset(cache_ds_train, train_size, seed, val_frac=val_frac, mode='train',no_stratify=no_stratify)
         self.ds_val = DataSubset(cache_ds_train, train_size, seed, val_frac=val_frac, mode='validate', no_stratify=no_stratify)
-        self.ds_test = CachedDataset(part_ds_test, memcache=memcache, cache_dir=os.path.join(cache_dir,'test'))
+        self.ds_test = CachedDataset(part_ds_test, memcache=memcache, cache_dir=test_cache_dir)
 
         self.batch_size = batch_size
 
         self.num_classes = self.ds_train.num_classes
 
-        def train_dataloader(self):
-            return DataLoader(
-                self.ds_train, 
-                batch_size=min(len(self.ds_train), self.batch_size), 
-                shuffle=True, 
-                num_workers=8, 
-                persistent_workers=True
-            )
+    def train_dataloader(self):
+        return DataLoader(
+            self.ds_train, 
+            batch_size=min(len(self.ds_train), self.batch_size), 
+            shuffle=True, 
+            num_workers=8, 
+            persistent_workers=True
+        )
 
-        def val_dataloader(self):
-            return DataLoader(
-                self.ds_val, 
-                batch_size=min(len(self.ds_val),self.batch_size), 
-                shuffle=False
-            )
+    def val_dataloader(self):
+        return DataLoader(
+            self.ds_val, 
+            batch_size=min(len(self.ds_val),self.batch_size), 
+            shuffle=False
+        )
 
-        def test_dataloader(self):
-            return DataLoader(self.ds_test, batch_size=1, shuffle=False)
+    def test_dataloader(self):
+        return DataLoader(self.ds_test, batch_size=1, shuffle=False)
 
