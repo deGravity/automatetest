@@ -26,6 +26,19 @@ def load_test_set(
 ):
     return BRepDS(index, datadir, 'test', preshuffle=False)
 
+def look_at(point, pos, up):
+    z = pos - point
+    x = np.cross(up, z)
+    y = np.cross(z, x)
+    x = x / np.linalg.norm(x)
+    y = y / np.linalg.norm(y)
+    z = z / np.linalg.norm(z)
+    pose = np.eye(4)
+    pose[:3,0] = x
+    pose[:3,1] = y
+    pose[:3,2] = z
+    pose[:3,3] = pos
+    return pose
 
 def find_best_angle(part, cubify=True):
     bb = part.summary.bounding_box
