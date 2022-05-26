@@ -111,6 +111,18 @@ class BRepFaceAutoencoder(pl.LightningModule):
     def encode(self, data):
         with torch.no_grad():
             return self.encoder(data)
+    
+    def testing_loss(self, data):
+        with torch.no_grad():
+            codes = self.encoder(data)
+            repeated_codes = codes.repeat_interleave(data.surface_coords.shape[1],dim=0)
+            uvs = data.surface_coords.reshape((-1,2))
+            uv_codes = torch.cat([uvs, repeated_codes],dim=1)
+            target = torch.cat([data.surface_samples[:,:,:3],data.surface_samples[:,:,-1].unsqueeze(-1)],dim=-1)
+            target[torch.isinf(target)] = -0.01
+            pred = self.decoder(uv_codes).reshape_as(target)
+            loss = torch.nn.functional.mse_loss(pred, target)
+        return loss, len(codes)
 
     def training_step(self, data, batch_idx):
         codes = self.encoder(data)

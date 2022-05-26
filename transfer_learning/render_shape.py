@@ -14,7 +14,7 @@ def load_test_set(
     index='D:/fusion360segmentation/simple_train_test.json', 
     datadir='D:/fusion360segmentation/simple_preprocessed'
 ):
-    return BRepDS(index, datadir, 'test')
+    return BRepDS(index, datadir, 'test', preshuffle=False)
 
 
 
