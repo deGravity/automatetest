@@ -150,3 +150,41 @@ class DictDatamodule(pl.LightningDataModule):
 
     def test_dataloader(self):
         return DataLoader(self.ds_test, batch_size=1, shuffle=False)
+
+
+# Functions for navigating the output
+
+import os
+
+# Load Our Trained Models
+def load_model(mp_layers, tb_dir):
+    checkpoint_dir = os.path.join(tb_dir, 'version_0', 'checkpoints')
+    checkpoints = [os.path.join(checkpoint_dir, f) for f in os.listdir(checkpoint_dir) if f.endswith('.ckpt') and 'val_loss' in f]
+    model = CodePredictor(64, 16, 2, mp_layers)
+    sd = torch.load(checkpoints[0],map_location='cpu')['state_dict']
+    model.load_state_dict(sd)
+    return model
+
+def find_models(root, seed = 0):
+    model_dirs = [
+        (d.split('_')[0], int(d.split('_')[1]), os.path.join(root,d)) 
+        for d in os.listdir(root) 
+        if '_' in d and os.path.isdir(os.path.join(root,d)) and int(d.split('_')[-1]) == seed
+    ]
+    m_dir_dict = dict()
+    for model, train_size, path in model_dirs:
+        ms = m_dir_dict.get(model, [])
+        ms.append((train_size, path))
+        m_dir_dict[model] = ms
+    # Sort by train_size
+    for model,paths in m_dir_dict.items():
+        m_dir_dict[model] = sorted(paths, key=lambda x: x[0])
+    
+    return m_dir_dict
+
+def load_models(root, seed = 0):
+    m_dir_dict = find_models(root, seed)
+    for k,v in m_dir_dict.items():
+        for i,(s, p) in enumerate(v):
+            v[i] = (s, load_model(int(k[-1]), p))
+    return m_dir_dict
