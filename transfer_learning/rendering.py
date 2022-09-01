@@ -179,7 +179,7 @@ def render_part(
     ).astype(int)
     
     # If we have custom face coloring labels, re-render the colors
-    if face_labels:
+    if face_labels is not None:
         tri_labels = face_labels[tri_labels]
         face_colors = (palette(tri_labels)*255).astype(int)
         mesh = trimesh.Trimesh(vertices=V, faces=part.mesh.F, face_colors=face_colors)
@@ -239,6 +239,148 @@ def render_mesh(
     if face_labels:
         tri_labels = face_labels[tri_labels]
         face_colors = (palette(tri_labels)*255).astype(int)
+        mesh = trimesh.Trimesh(vertices=V, faces=F, face_colors=face_colors)
+        pmesh = pyrender.Mesh.from_trimesh(mesh, smooth=False)
+        scene = pyrender.Scene(ambient_light=[1.0, 1.0, 1.0], bg_color=[1.0, 1.0, 1.0])
+        scene.add(pmesh, pose=np.eye(4))
+        scene.add(cam, pose=camera_pose)
+        color, _ = r.render(scene, flags=pyrender.constants.RenderFlags.FLAT | pyrender.constants.RenderFlags.SKIP_CULL_FACES)
+
+    
+    color_with_edges = np.stack([edge_mask]*3,axis=-1)*color
+    
+    if not renderer:
+        r.delete()
+    
+    return color_with_edges
+
+
+def render_part2(
+        part, camera_pose, zoom, 
+        max_labels = None, face_labels=None, cmap='tab20', 
+        renderer = None,viewport_width=800, viewport_height=800, point_size=1.0,
+        normalize=True
+):
+    V = part.mesh.V
+    if normalize: # assuming centered part for now
+        max_coord = np.abs(V).max()
+        scale = 1 / max_coord
+        V = V * scale
+    
+    inferred_max_labels = (part.mesh_topology.face_to_topology.max() + 1)
+    if max_labels and face_labels is None:
+        inferred_max_labels = max_labels
+    if not max_labels:
+        max_labels = inferred_max_labels
+
+    if isinstance(cmap, str):
+        palette = plt.cm.get_cmap(cmap, lut=inferred_max_labels)
+    else:
+        palette = plt.cm.get_cmap('tab20', lut=inferred_max_labels)
+    
+    tri_labels = part.mesh_topology.face_to_topology
+    
+    face_colors = (palette(tri_labels)*255).astype(int)
+    
+    mesh = trimesh.Trimesh(vertices=V, faces=part.mesh.F, face_colors=face_colors)
+    pmesh = pyrender.Mesh.from_trimesh(mesh, smooth=False)
+    
+    cam = pyrender.OrthographicCamera(xmag=zoom, ymag=zoom)
+    
+    scene = pyrender.Scene(ambient_light=[1.0, 1.0, 1.0], bg_color=[1.0, 1.0, 1.0])
+    scene.add(pmesh, pose=np.eye(4))
+    scene.add(cam, pose=camera_pose)
+    
+    if not renderer:
+        r = pyrender.OffscreenRenderer(viewport_width=viewport_width, viewport_height=viewport_height, point_size=point_size)
+    
+    # Rendering an image with independent face colors. Do this first regardless of overridding
+    # color labels in order to compute hard edges for edge rendering
+    color, _ = r.render(scene, flags=pyrender.constants.RenderFlags.FLAT | pyrender.constants.RenderFlags.SKIP_CULL_FACES)
+    
+    # Detect Edges to add to image
+    laplace_kernel = np.array([[0, 1, 0],[1, -4, 1],[0, 1, 0]])
+    edge_mask = (
+        (scipy.ndimage.convolve(color[:,:,0], laplace_kernel) 
+         + scipy.ndimage.convolve(color[:,:,1], laplace_kernel) 
+         + scipy.ndimage.convolve(color[:,:,2], laplace_kernel)) == 0
+    ).astype(int)
+    
+    # If we have custom face coloring labels, re-render the colors
+    if face_labels is not None or not isinstance(cmap, str):
+        if isinstance(cmap, str):
+            palette = plt.cm.get_cmap(cmap, lut=max_labels)
+        else:
+            palette = cmap
+        tri_labels = face_labels[tri_labels]
+        face_colors = (np.array(palette(tri_labels))*255).astype(int)
+        mesh = trimesh.Trimesh(vertices=V, faces=part.mesh.F, face_colors=face_colors)
+        pmesh = pyrender.Mesh.from_trimesh(mesh, smooth=False)
+        scene = pyrender.Scene(ambient_light=[1.0, 1.0, 1.0], bg_color=[1.0, 1.0, 1.0])
+        scene.add(pmesh, pose=np.eye(4))
+        scene.add(cam, pose=camera_pose)
+        color, _ = r.render(scene, flags=pyrender.constants.RenderFlags.FLAT | pyrender.constants.RenderFlags.SKIP_CULL_FACES)
+
+    
+    color_with_edges = np.stack([edge_mask]*3,axis=-1)*color
+    
+    if not renderer:
+        r.delete()
+    
+    return color_with_edges
+def render_mesh2(
+        V, F, labels, camera_pose, zoom, 
+        max_labels = None, face_ids = None, face_labels=None, cmap='tab20', 
+        renderer = None,viewport_width=800, viewport_height=800, point_size=1.0
+):
+    
+    inferred_max_labels = (labels.max() + 1)
+    if max_labels and face_labels is None:
+        inferred_max_labels = max_labels
+    if not max_labels:
+        max_labels = inferred_max_labels
+    
+    if isinstance(cmap, str):
+        palette = plt.cm.get_cmap(cmap, lut=inferred_max_labels)
+    else:
+        palette = plt.cm.get_cmap('tab20', lut=inferred_max_labels)
+    
+    tri_labels = labels
+    
+    face_colors = (palette(tri_labels)*255).astype(int)
+    
+    mesh = trimesh.Trimesh(vertices=V, faces=F, face_colors=face_colors)
+    pmesh = pyrender.Mesh.from_trimesh(mesh, smooth=False)
+    
+    cam = pyrender.OrthographicCamera(xmag=zoom, ymag=zoom)
+    
+    scene = pyrender.Scene(ambient_light=[1.0, 1.0, 1.0], bg_color=[1.0, 1.0, 1.0])
+    scene.add(pmesh, pose=np.eye(4))
+    scene.add(cam, pose=camera_pose)
+    
+    if not renderer:
+        r = pyrender.OffscreenRenderer(viewport_width=viewport_width, viewport_height=viewport_height, point_size=point_size)
+    
+    # Rendering an image with independent face colors. Do this first regardless of overridding
+    # color labels in order to compute hard edges for edge rendering
+    color, _ = r.render(scene, flags=pyrender.constants.RenderFlags.FLAT | pyrender.constants.RenderFlags.SKIP_CULL_FACES)
+    
+    # Detect Edges to add to image
+    laplace_kernel = np.array([[0, 1, 0],[1, -4, 1],[0, 1, 0]])
+    edge_mask = (
+        (scipy.ndimage.convolve(color[:,:,0], laplace_kernel) 
+         + scipy.ndimage.convolve(color[:,:,1], laplace_kernel) 
+         + scipy.ndimage.convolve(color[:,:,2], laplace_kernel)) == 0
+    ).astype(int)
+    
+    # If we have custom face coloring labels, re-render the colors
+    if face_labels is not None or not isinstance(cmap, str):
+        if isinstance(cmap, str):
+            palette = plt.cm.get_cmap(cmap, lut=max_labels)
+        else:
+            palette = cmap
+        tri_labels = face_labels[tri_labels]
+        face_colors = (np.array(palette(tri_labels))*255).astype(int)
         mesh = trimesh.Trimesh(vertices=V, faces=F, face_colors=face_colors)
         pmesh = pyrender.Mesh.from_trimesh(mesh, smooth=False)
         scene = pyrender.Scene(ambient_light=[1.0, 1.0, 1.0], bg_color=[1.0, 1.0, 1.0])
