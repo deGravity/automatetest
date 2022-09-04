@@ -156,7 +156,6 @@ class DictDatamodule(pl.LightningDataModule):
 
 import os
 
-# Load Our Trained Models
 def load_model(mp_layers, tb_dir):
     checkpoint_dir = os.path.join(tb_dir, 'version_0', 'checkpoints')
     checkpoints = [os.path.join(checkpoint_dir, f) for f in os.listdir(checkpoint_dir) if f.endswith('.ckpt') and 'val_loss' in f]
