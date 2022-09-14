@@ -6,6 +6,11 @@ import random
 import torch
 import json
 from tqdm import tqdm
+from torch_geometric.nn import global_max_pool
+from torch.nn import Linear
+from torch.nn.functional import leaky_relu, cross_entropy
+from collections import Counter
+from math import ceil
 
 def create_subset(data, seed, size):
     random.seed(seed)
@@ -101,7 +106,100 @@ class CodePredictor(pl.LightningModule):
         
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=1e-3)
+    
+    @classmethod
+    def get_params(cls, exp_name):
+        return [64,16,2,int(exp_name[2])]
+
+
+class CodedFabwave(torch.utils.data.Dataset):
+    def __init__(self, index, coded_data, seed, fraction, mode = 'train'):
+        super().__init__()
         
+        def create_subset(data, seed, size):
+            random.seed(seed)
+            return random.sample(data, size)
+
+        category_counts = Counter([key[0] for key in index['train']])
+        category_encodings = {cat:i for i,cat in enumerate(sorted(category_counts.keys()))}
+        category_seeds = lambda seed: {k:(v + seed*len(category_encodings)) for k,v in category_encodings.items()}
+        
+        def subset_category(cat, seed, fraction):
+            return create_subset(
+                [x for x in index['train'] if x[0] == cat], 
+                category_seeds(seed)[cat], 
+                max(2, ceil(fraction*category_counts[cat])))
+        
+        def subset_train(seed, fraction):
+            return [key for cat in category_counts for key in subset_category(cat, seed, fraction)]
+        
+        keyset = index['test']
+        if mode in ['train','validate']:
+            keyset = subset_train(seed, fraction)
+            
+            val_size = 0.2 if ceil(0.2*len(keyset) >= 26) else 26
+     
+            train_keys, val_keys = train_test_split(
+                keyset, test_size=val_size, random_state=42, stratify=[k[0] for k in keyset],
+            )
+            
+            keyset = train_keys if mode == 'train' else val_keys
+        
+        self.all_data = [tg.data.Data(**coded_data[index['template'].format(*k)]) for k in keyset]
+    
+    def __len__(self):
+        return len(self.all_data)
+    
+    def __getitem__(self, idx):
+        return self.all_data[idx]
+
+class PoolingPredictor(pl.LightningModule):
+    def __init__(self, in_size, hidden_size, out_size):
+        super().__init__()
+        self.lin1 = Linear(in_size, hidden_size)
+        self.lin2 = Linear(hidden_size, out_size)
+        self.test_accuracy = Accuracy()
+    
+    def forward(self, data):
+        x = self.lin1(data.x)
+        x_batch = data.batch if 'batch' in data else torch.zeros_like(data.x[:,0]).long()
+        x = global_max_pool(x, x_batch)
+        x = leaky_relu(x)
+        x = self.lin2(x)
+        return x
+    
+    def training_step(self, batch, batch_idx):
+        scores = self(batch)
+        loss = cross_entropy(scores, batch.y.reshape(-1))
+        bs = len(batch.y.reshape(-1))
+        acc = (scores.argmax(dim=1) == batch.y).sum() / len(scores)
+        self.log('train_loss', loss, on_step=True, on_epoch=True, batch_size=bs)
+        self.log('train_acc', acc, on_step=True, on_epoch=True, batch_size=bs)
+        return loss
+    
+    def validation_step(self, batch, batch_idx):
+        scores = self(batch)
+        loss = cross_entropy(scores, batch.y.reshape(-1))
+        bs = len(batch.y.reshape(-1))
+        acc = (scores.argmax(dim=1) == batch.y).sum() / len(scores)
+        self.log('val_loss', loss, on_step=True, on_epoch=True, batch_size=bs)
+        self.log('val_acc', acc, on_step=True, on_epoch=True, batch_size=bs)
+        
+    def test_step(self, batch, batch_idx):
+        scores = self(batch)
+        preds = scores.argmax(dim=1)
+        targets = batch.y.reshape(-1)
+        self.test_accuracy(preds, targets)
+        self.log('test_acc', self.test_accuracy, on_step=False, on_epoch=True, batch_size=len(targets))
+        
+        
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=1e-3)
+    
+    @classmethod
+    def get_params(cls, exp_name):
+        return [64,64,26]
+
 
 class DictDataset(torch.utils.data.Dataset):
     def __init__(self, index, data, mode='train', val_frac=.2,seed=42,undirected=True,train_size=None):
@@ -156,17 +254,56 @@ class DictDatamodule(pl.LightningDataModule):
 
 import os
 
-def load_model(mp_layers, tb_dir):
-    checkpoint_dir = os.path.join(tb_dir, 'version_0', 'checkpoints')
-    checkpoints = [os.path.join(checkpoint_dir, f) for f in os.listdir(checkpoint_dir) if f.endswith('.ckpt') and 'val_loss' in f]
-    model = CodePredictor(64, 16, 2, mp_layers)
-    sd = torch.load(checkpoints[0],map_location='cpu')['state_dict']
+# By default, assume that we want the latest version and the lowest val_loss
+def load_model(
+    tb_dir, 
+    model_class=CodePredictor,
+    v_num='last', 
+    metric='val_loss', 
+    descending=False, 
+    device='cpu'
+):  
+    exp_name = os.path.split(tb_dir)[-1].split('_')[0]
+    versions = {int(d.split('_')[-1]):d for d in os.listdir(tb_dir) if 'version_' in d} 
+    if v_num not in versions: # Take the latest if specified version isn't found
+        v_num = sorted(versions.keys(), reverse=True)[0]
+    version = versions[v_num]
+    checkpoint_dir = os.path.join(tb_dir, version, 'checkpoints')
+    checkpoints = [os.path.join(checkpoint_dir, f) for f in os.listdir(checkpoint_dir) if f.endswith('.ckpt') and metric in f]
+    cp_by_loss = [(float(cp[cp.index(f'{metric}=') + len(f'{metric}='):-5]),cp) for cp in checkpoints]
+    cp_by_loss = sorted(cp_by_loss, key=lambda x: x[0], reverse=descending)
+    checkpoint = cp_by_loss[0][1]
+    model = model_class(*model_class.get_params(exp_name))
+    sd = torch.load(checkpoint,map_location=device)['state_dict']
     model.load_state_dict(sd)
     return model
 
-def find_models(root, seed = 0):
+def load_models(
+    root, 
+    seeds=list(range(10)),
+    model_class=CodePredictor,
+    size_type=int,
+    v_num='last',
+    metric='val_loss',
+    descending=False,
+    device='cpu'
+):
+    output = {}
+    for seed in seeds:
+        # exp_name : [(size, tb_path),...]
+        model_dirs = find_models(root, seed, size_type)
+        for exp_name, tb_paths in model_dirs.items():
+            output[exp_name] = output.get(exp_name,{})
+            for size, tb_path in tb_paths:
+                output[exp_name][size] = output[exp_name].get(size, [])
+                model = load_model(tb_path, model_class, v_num, metric, descending, device)
+                output[exp_name][size].append(model)
+    # output_format: exp_name: size :  [model,...] (seed order)
+    return output
+
+def find_models(root, seed = 0, size_type = int):
     model_dirs = [
-        (d.split('_')[0], int(d.split('_')[1]), os.path.join(root,d)) 
+        (d.split('_')[0], size_type(d.split('_')[1]), os.path.join(root,d)) 
         for d in os.listdir(root) 
         if '_' in d and os.path.isdir(os.path.join(root,d)) and int(d.split('_')[-1]) == seed
     ]
@@ -181,9 +318,34 @@ def find_models(root, seed = 0):
     
     return m_dir_dict
 
-def load_models(root, seed = 0):
-    m_dir_dict = find_models(root, seed)
+def our_fabwave_models(root):
+    return load_models(
+    os.path.join(root, 'fabwave_nn_pool'),
+    model_class=PoolingPredictor,
+    metric='step',
+    descending=True,
+    size_type = float
+    )['fwp']
+
+def our_f360seg_models(root):
+    return load_models(os.path.join(root,'f360seg'))['mp2']
+
+def our_mfcad_models(root):
+    return load_models(os.path.join(root,'mfcad'))['mp2']
+
+## DEPRECATED ##
+
+def load_segmentation_models(root, seed = 0, size_type=int):
+    m_dir_dict = find_models(root, seed, size_type)
     for k,v in m_dir_dict.items():
         for i,(s, p) in enumerate(v):
             v[i] = (s, load_model(int(k[-1]), p))
     return m_dir_dict
+
+def load_segmentation_model(mp_layers, tb_dir):
+    checkpoint_dir = os.path.join(tb_dir, 'version_0', 'checkpoints')
+    checkpoints = [os.path.join(checkpoint_dir, f) for f in os.listdir(checkpoint_dir) if f.endswith('.ckpt') and 'val_loss' in f]
+    model = CodePredictor(64, 16, 2, mp_layers)
+    sd = torch.load(checkpoints[0],map_location='cpu')['state_dict']
+    model.load_state_dict(sd)
+    return model

@@ -10,6 +10,12 @@ import trimesh
 import scipy
 from matplotlib import pyplot as plt
 
+import json
+from zipfile import ZipFile
+from pspy import Part, PartOptions
+from tqdm import tqdm
+
+
 def look_at(point, pos, up):
     z = pos - point
     x = np.cross(up, z)
@@ -134,6 +140,24 @@ def find_best_angle(V, F, FtoT, cubify=True, normalize=True):
     zoom_factor = np.abs(mg.reshape((-1,2))[mask.flatten()]).max() * 1.05 # add 5% for some margin
     return candidate_poses[best_idx], zoom_factor * best_zoom
 
+def get_camera_params(index_path, zip_path, split='test'):
+    poses = []
+    zooms = []
+    opts = PartOptions()
+    opts.default_mcfs = False
+    opts.num_uv_samples = 0
+    opts.sample_normals = 0
+    opts.sample_tangents = False
+    with open(index_path, 'r') as f:
+        index = json.load(f)
+    parts_list = [index['template'].format(*x) for x in index[split]]
+    with ZipFile(zip_path, 'r') as zf:
+        for part_path in tqdm(parts_list):
+            part = Part(zf.open(part_path).read().decode('utf-8'), opts)
+            pose, zoom = find_best_angle_from_part(part, cubify=True)
+            poses.append(pose)
+            zooms.append(zoom)
+    return poses, zooms
 
 def render_part(
         part, camera_pose, zoom, 
