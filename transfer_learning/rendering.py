@@ -382,8 +382,10 @@ def render_mesh2(
     scene.add(pmesh, pose=np.eye(4))
     scene.add(cam, pose=camera_pose)
     
-    if not renderer:
+    if renderer is None:
         r = pyrender.OffscreenRenderer(viewport_width=viewport_width, viewport_height=viewport_height, point_size=point_size)
+    else:
+        r = renderer
     
     # Rendering an image with independent face colors. Do this first regardless of overridding
     # color labels in order to compute hard edges for edge rendering
@@ -415,8 +417,25 @@ def render_mesh2(
     
     color_with_edges = np.stack([edge_mask]*3,axis=-1)*color
     
-    if not renderer:
+    if renderer is None:
         r.delete()
     
     return color_with_edges
 
+
+def grid_images(images):
+    rows,cols,height,width,_ = images.shape
+    grid = np.zeros((rows*height,cols*width,3)).astype(int)
+    for r in range(rows):
+        for c in range(cols):
+            grid[r*height:(r+1)*height,c*width:(c+1)*width,:] = images[r,c,:,:,:]
+    return grid
+
+def render_grid(parts_grid, viewport_width=800, viewport_height=800, point_size=1.0):
+    renderer = pyrender.OffscreenRenderer(
+        viewport_width=viewport_width, viewport_height=viewport_height, point_size=point_size)
+    images = np.stack([
+            np.stack([render_part2(*part_spec, 'tab20', renderer) for part_spec in part_row]) 
+        for part_row in parts_grid])
+    renderer.delete()
+    return grid_images(images)
