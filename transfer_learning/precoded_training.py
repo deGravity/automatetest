@@ -339,7 +339,7 @@ def load_segmentation_models(root, seed = 0, size_type=int):
     m_dir_dict = find_models(root, seed, size_type)
     for k,v in m_dir_dict.items():
         for i,(s, p) in enumerate(v):
-            v[i] = (s, load_model(int(k[-1]), p))
+            v[i] = (s, load_segmentation_model(int(k[-1]), p))
     return m_dir_dict
 
 def load_segmentation_model(mp_layers, tb_dir):

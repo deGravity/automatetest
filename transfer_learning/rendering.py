@@ -419,3 +419,4 @@ def render_mesh2(
         r.delete()
     
     return color_with_edges
+
