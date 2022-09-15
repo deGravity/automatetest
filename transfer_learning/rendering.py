@@ -317,6 +317,8 @@ def render_part2(
     
     if not renderer:
         r = pyrender.OffscreenRenderer(viewport_width=viewport_width, viewport_height=viewport_height, point_size=point_size)
+    else:
+        r = renderer
     
     # Rendering an image with independent face colors. Do this first regardless of overridding
     # color labels in order to compute hard edges for edge rendering

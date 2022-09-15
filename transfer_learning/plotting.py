@@ -11,7 +11,7 @@ from rendering import render_part2, render_grid
 import pandas as pd
 from util import load_json
 
-def plot_accuracies(frame, dataset, scale='log'):
+def plot_accuracies(frame, dataset, scale='log', average='micro'):
     line = alt.Chart(frame).mark_line().encode(
         x=alt.X('train_size',scale=alt.Scale(type=scale)),
         y=alt.Y('mean(accuracy)'),
@@ -25,7 +25,7 @@ def plot_accuracies(frame, dataset, scale='log'):
     )
 
     return (band + line).properties(
-        title=f'{dataset} Accuracy vs Train Size'
+        title=f'{dataset} Accuracy vs Train Size ({average}averaged, {scale} scale)'
     )
 
 def plot_segmentation_accuracies(frame, dataset, average='micro', scale='log'):
@@ -36,7 +36,7 @@ def plot_segmentation_accuracies(frame, dataset, average='micro', scale='log'):
             ).agg({'accuracy':'mean'}).reset_index()
     frame = frame.groupby(
         ['dataset','model','train_size','seed']).agg({'accuracy':'mean'}).reset_index()
-    return plot_accuracies(frame, dataset, scale)
+    return plot_accuracies(frame, dataset, scale, average)
 
 def plot_classification_accuracies(frame, dataset, size_proto_model='Ours', scale='log'):
     ts_frac = frame[frame.model==size_proto_model].groupby('train_fraction').agg({'train_size':'min'}).reset_index()
@@ -158,31 +158,33 @@ def render_segmentation_comparisons(
             axes[k,3].imshow(brep_im)
             for ax in axes[k]:
                 ax.axis('off')
+    return fig
 
 
-def plot_segmentation_results(seg_preds_path, index_path, gridspec, w=800, h=800):
-    seg_preds = pd.read_parquet(seg_preds_path)
-    index = load_json(index_path)
-    camera_params = np.load(index_path[:-3]+'.npz')
+def render_segmentation_grid(seg_preds, data, gridspec, w=800, h=800):
     args_grid = []
-    with ZipFile(index_path[:-3]+'.zip') as zf:
-        for specrow in gridspec:
-            argsrow = []
-            for spec in specrow:
-                (dataset, model, test_idx, train_size, seed, col, max_labels) = spec
-                labels = seg_preds[
-                    (seg_preds.dataset == dataset) & 
-                    (seg_preds.model == model) & 
-                    (seg_preds.test_idx == test_idx) &
-                    (seg_preds.train_size == train_size) &
-                    (seg_preds.seed == seed)  
-                    ].sort_values('face_idx')[col].values
-                pose = camera_params['test_poses'][test_idx]
-                zoom = camera_params['test_zooms'][test_idx]
-                part_name = index['template'].format(*index['test'][test_idx])
-                part = Part(zf.open(part_name, 'r').read().decode('utf-8'))
-                render_args = (part, pose, zoom, max_labels, labels)
-                argsrow.append(render_args)
+    cached_parts = {}
+    for specrow in gridspec:
+        argsrow = []
+        for spec in specrow:
+            (dataset, model, test_idx, train_size, seed, col, max_labels) = spec
+            labels = seg_preds[
+                (seg_preds.dataset == dataset) & 
+                (seg_preds.model == model) & 
+                (seg_preds.test_idx == test_idx) &
+                (seg_preds.train_size == train_size) &
+                (seg_preds.seed == seed)  
+                ].sort_values('face_idx')[col].values
+            pose = data.camera['test_poses'][test_idx]
+            zoom = data.camera['test_zooms'][test_idx]
+            part_name = data.index['template'].format(*data.index['test'][test_idx])
+            if part_name in cached_parts:
+                part = cached_parts[part_name]
+            else:
+                part = Part(data.zip.open(part_name, 'r').read().decode('utf-8'))
+                cached_parts[part_name] = part
+            render_args = (part, pose, zoom, max_labels, labels)
+            argsrow.append(render_args)
         args_grid.append(argsrow)
     return render_grid(args_grid, w, h)
 

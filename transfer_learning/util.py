@@ -1,6 +1,7 @@
 import json
 from zipfile import ZipFile
 import os
+import numpy as np
 
 def write_json(obj, filename):
     directory = os.path.dirname(filename)
@@ -19,3 +20,16 @@ def load_json(p, zf=None):
                 return json.load(f)
     with open(p,'r') as f:
         return json.load(f)
+
+class ZippedDataset:
+    def __init__(self, root):
+        self.index = load_json(root+'.json')
+        self.camera = np.load(root+'.npz')
+        self.root = root
+        self.open_zip()
+    
+    def close_zip(self):
+        self.zip.close()
+
+    def open_zip(self):
+        self.zip = ZipFile(self.root+'.zip')
