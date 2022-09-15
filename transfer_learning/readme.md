@@ -51,3 +51,24 @@ named json file for use with the paper generation code.
 ### Evaluate Fitting Task
 
 We need a model and an edit to try this on
+
+
+### Proposed Separation of Repositories
+
+The parasolid frustrum, brep loading code, automate, and representation learning code
+can and should be moved into separate repositories.
+
+Proposed Separation:
+
+parasolid: C++/CMake Project with just the frustrum code
+
+brep_reader: C++/CMake Project with read_file for step/x_t (x_t optional) that has bodies,
+but no parts
+
+automate: Python/C++ project. Contains SBGCN and related gcn code,
+Part from pspy, and the automate tool
+
+repbrep/fsbrep/hybridrep: Python/C++ Project. Contains implicit_part,
+plus any training and evaluation code. Has index jsons committed, and
+download scripts to download zips for other datasets. Has code to
+make plots from parquet files, and helper scripts to generate those.

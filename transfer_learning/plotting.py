@@ -1,24 +1,24 @@
 import numpy as np
 import altair as alt
 
-def plot_accuracies(frame, dataset):
+def plot_accuracies(frame, dataset, scale='log'):
     line = alt.Chart(frame).mark_line().encode(
-        x=alt.X('train_size',scale=alt.Scale(type="log")),
+        x=alt.X('train_size',scale=alt.Scale(type=scale)),
         y=alt.Y('mean(accuracy)'),
-        color='model'
+        color=alt.Color('model',sort=['Ours','UV-Net','BRepNet'])
     )
 
     band = alt.Chart(frame).mark_errorband(extent='ci').encode(
-        x=alt.X('train_size', scale=alt.Scale(type="log")),
+        x=alt.X('train_size', scale=alt.Scale(type=scale)),
         y=alt.Y('accuracy', title='accuracy'),
-        color=alt.Color('model')
+        color=alt.Color('model',sort=['Ours','UV-Net','BRepNet'])
     )
 
     return (band + line).properties(
         title=f'{dataset} Accuracy vs Train Size'
     )
 
-def plot_segmentation_accuracies(frame, dataset, average='micro'):
+def plot_segmentation_accuracies(frame, dataset, average='micro', scale='log'):
     frame = frame[frame.dataset == dataset]
     if average=='macro':
         frame = frame.groupby(
@@ -26,14 +26,14 @@ def plot_segmentation_accuracies(frame, dataset, average='micro'):
             ).agg({'accuracy':'mean'}).reset_index()
     frame = frame.groupby(
         ['dataset','model','train_size','seed']).agg({'accuracy':'mean'}).reset_index()
-    return plot_accuracies(frame, dataset)
+    return plot_accuracies(frame, dataset, scale)
 
-def plot_classification_accuracies(frame, dataset, size_proto_model='Ours'):
+def plot_classification_accuracies(frame, dataset, size_proto_model='Ours', scale='log'):
     ts_frac = frame[frame.model==size_proto_model].groupby('train_fraction').agg({'train_size':'min'}).reset_index()
     tf_to_ts = dict(zip(ts_frac.train_fraction,ts_frac.train_size))
     frame.train_size = np.vectorize(lambda x: tf_to_ts[x])(frame.train_fraction)
     frame = frame.groupby(['dataset','model','train_size','seed']).agg({'accuracy':'mean'}).reset_index()
-    return plot_accuracies(frame, dataset)
+    return plot_accuracies(frame, dataset, scale)
 
 def plot_reconstruction_vs_classification(accs):
     accs['one'] = 1
