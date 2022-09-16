@@ -1,23 +1,25 @@
-import numpy as np
-
 import os
 import platform
 if platform.system() != 'Windows':
     os.environ['PYOPENGL_PLATFORM'] = 'egl'
 
+from collections import namedtuple
+
+import numpy as np
 import pyrender
+from pyrender.constants import RenderFlags
+
 import trimesh
 import scipy
+
 from matplotlib import pyplot as plt
+from matplotlib.patches import Patch
 
 import json
 from zipfile import ZipFile
 from pspy import Part, PartOptions
 from tqdm import tqdm
 
-from pyrender.constants import RenderFlags
-from matplotlib.patches import Patch
-from collections import namedtuple
 
 CameraParams = namedtuple('CameraParams', ['pose','mag'])
 
@@ -38,7 +40,7 @@ def look_at(point, pos, up):
 # Gets the camera angle and magnification for a part
 # Optionall optimizes for most faces seen, or best view
 # of a particular face
-def get_camera_angle(V, F, F_id, optimize=None, renderer=None):
+def get_camera_angle(V, F, F_id, optimize=None, renderer=None, return_renderer=False):
     # Normalize
     center = (np.min(V,axis=0) + np.max(V,axis=0))/2
     V = V - center
@@ -53,7 +55,7 @@ def get_camera_angle(V, F, F_id, optimize=None, renderer=None):
         [1.1, 1.1, 1.1]
     ])
 
-    init_renderer = (optimize is not None) and (renderer is None)
+    init_renderer = (renderer is None) and ((optimize is not None) or return_renderer) 
     if init_renderer:
         renderer = pyrender.OffscreenRenderer(
             viewport_width=200, 
@@ -66,8 +68,11 @@ def get_camera_angle(V, F, F_id, optimize=None, renderer=None):
     angles = [compute_camera_params(V, F, F_id, c, optimize, renderer) for c in corners]
     angles = sorted(angles, key=lambda x:x[1], reverse=True)
 
-    if init_renderer:
+    if init_renderer and not return_renderer:
         renderer.delete()
+
+    if return_renderer:
+        return angles[0][0], renderer
 
     return angles[0][0]
 
@@ -102,10 +107,16 @@ def compute_camera_params(V, F, F_id, pos, optimize=None, renderer=None):
             target_visibility = (pixel_colors == target_color).all(axis=1).sum()
             metric = target_visibility
         else: # maximize number of faces seen
+
+            high_pass = (pixel_colors >= 50).all(axis=1)
+            low_pass = (pixel_colors < 50+np.array([137,151,173])).all(axis=1)
+            band_pass = high_pass & low_pass
+            pixel_colors = pixel_colors[band_pass]
+
             _, counts = np.unique(pixel_colors, axis=0, return_counts=True)
             # ignore spurrious colors
-            # heuristic: at least half a row worth of pixels
-            num_visible = (counts > image.shape[0]/2).sum()
+            # heuristic: at least a quarter row worth of pixels
+            num_visible = (counts > image.shape[0]/4).sum()
             metric = num_visible
     
     return CameraParams(camera_pose, mag), metric
@@ -128,7 +139,8 @@ def render_segmented_mesh(
     camera_opt=None,
     transparent_bg=True,
     renderer=None,
-    render_params=RendererParams(400,400)
+    render_params=RendererParams(400,400),
+    return_renderer=False
 ):
     
     # Create a renderer if necessary
@@ -155,8 +167,11 @@ def render_segmented_mesh(
 
     # Setup Mesh to Render
     
+    # Use default colors if no colors or list of color indices given
     if id_color is None:
         id_color = pallet(np.arange(F_id.max()+1))
+    elif len(np.shape(id_color)) == 1:
+        id_color = pallet(id_color)
     
     face_mesh = pyrender.Mesh.from_trimesh(
         trimesh.Trimesh(
@@ -201,13 +216,18 @@ def render_segmented_mesh(
     scene.add(face_mesh, pose=np.eye(4))
     scene.add(camera, pose=camera_params.pose)
 
-    image, _ = renderer.render(scene, flags=RenderFlags.FLAT | RenderFlags.SKIP_CULL_FACES)
+    image, _ = renderer.render(scene, flags=RenderFlags.FLAT | RenderFlags.SKIP_CULL_FACES)# | RenderFlags.RGBA)
 
     # Superimpose edges onto image
+    #guass_vec = np.array([[1,4,6,4,1]])
+    #guass_kern = guass_vec.T.dot(guass_vec)/255
+    #blurred_edge = scipy.ndimage.convolve((1-edge_mask).astype(np.float64),guass_kern)
+    #edge_stack = np.stack([edge_mask]*4,axis=-1)
+    #edge_stack[:,:,3] = 255
     image = np.stack([edge_mask]*3,axis=-1)*image
 
     # Clean up renderer if created
-    if created_renderer:
+    if created_renderer and not return_renderer:
         renderer.delete()
     
     # Add alpha channel if requested
@@ -215,6 +235,9 @@ def render_segmented_mesh(
         alpha = (1-(image == 255).prod(axis=2))*255
         w,h = alpha.shape
         image = np.concatenate([image, alpha.reshape((w,h,1))],axis=-1)
+
+    if return_renderer:
+        return image, renderer
 
     return image
 
@@ -237,8 +260,8 @@ def make_legend(color_key, label_names, ax, **kwargs):
     ax.legend(handles=elements, **kwargs)
 
 def grid_images(images):
-    rows,cols,height,width,_ = images.shape
-    grid = np.zeros((rows*height,cols*width,3)).astype(int)
+    rows,cols,height,width,channels = images.shape
+    grid = np.zeros((rows*height,cols*width,channels)).astype(int)
     for r in range(rows):
         for c in range(cols):
             grid[r*height:(r+1)*height,c*width:(c+1)*width,:] = images[r,c,:,:,:]

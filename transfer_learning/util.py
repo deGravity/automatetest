@@ -2,6 +2,7 @@ import json
 from zipfile import ZipFile
 import os
 import numpy as np
+from PIL import Image
 
 def write_json(obj, filename):
     directory = os.path.dirname(filename)
@@ -33,3 +34,6 @@ class ZippedDataset:
 
     def open_zip(self):
         self.zip = ZipFile(self.root+'.zip')
+
+def arr2im(a):
+    return Image.fromarray(a.astype(np.uint8))
