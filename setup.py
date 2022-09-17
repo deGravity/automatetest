@@ -50,6 +50,19 @@ class build_ext(build_ext_orig):
 
 ## End from https://stackoverflow.com/questions/42585210/extending-setuptools-extension-to-use-cmake-in-setup-py ##
 
+# Not put in the setup, but these are the minimum packages
+# you should have to use everytihng in the repo.
+install_requires=[
+        'pytorch',
+        'torch-geometric',
+        'torch-scatter',
+        'torch-sparse'
+        'pytorch-lightning',
+        'dotmap',
+        'seaborn',
+        'numpy',
+        'matplotlib'
+    ]
 
 setup(
     name='automate',
