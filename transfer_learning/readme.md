@@ -72,3 +72,14 @@ repbrep/fsbrep/hybridrep: Python/C++ Project. Contains implicit_part,
 plus any training and evaluation code. Has index jsons committed, and
 download scripts to download zips for other datasets. Has code to
 make plots from parquet files, and helper scripts to generate those.
+
+Gameplan:
+ 1) Switch to ps_frustrum and fetch_content
+ 2) Separate into different targets within the same CMake File, see if it builds. Update includes appropriately "" -> <>
+ 3) Move brep_loader target to its own repository and use fetch_content
+ 4) Separate out pspy into automate part and hybridrep part, update python code respectively
+ 5) Move hybridrep python and C++ code to its own repository that depends
+ on automate *only on the python side*
+ 6) Reorganize brep_loader to have sane directory structure
+ 7) Make parasolid and opencascade optional dependencies that are automatically detected
+ 8) Add appropriate detection and warning for unsupported CAD kernels
