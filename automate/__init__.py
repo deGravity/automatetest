@@ -7,6 +7,10 @@ from .brep import PartFeatures, part_to_graph, HetData, PartDataset
 from .sbgcn import SBGCN, LinearBlock, BipartiteResMRConv
 
 from .util import run_model, ArgparseInitialized
+from .eclasses import find_eclasses
+
+from automate_cpp import Part, PartOptions
+
 
 __all__ = [
     'jsonify', 
@@ -20,5 +24,8 @@ __all__ = [
     'flatbatch',
     'run_model',
     'ArgparseInitialized',
-    'BipartiteResMRConv'
+    'BipartiteResMRConv',
+    'Part',
+    'PartOptions',
+    'find_eclasses'
     ]

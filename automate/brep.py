@@ -4,11 +4,7 @@ import numpy as np
 from dotmap import DotMap
 from .conversions import torchify
 from torch_geometric.data import Batch
-HAVE_PARASOLID = True
-try:
-    import pspy
-except:
-    HAVE_PARASOLID = False
+from automate_cpp import Part, PartOptions
 import json
 import os
 
@@ -35,10 +31,8 @@ class PartDataset(torch.utils.data.Dataset):
             splits = json.load(f)
         self.part_paths = splits[self.mode]
 
-        if HAVE_PARASOLID:
-            self.options = pspy.PartOptions() if part_options is None else part_options
-        else:
-            self.options = None
+        self.options = PartOptions() if part_options is None else part_options
+
         self.features = PartFeatures() if graph_options is None else graph_options
     
     def __getitem__(self, idx):
@@ -51,10 +45,8 @@ class PartDataset(torch.utils.data.Dataset):
         part_path = os.path.join(self.data_dir, self.part_paths[idx])
         if part_path.endswith('.pt'):
             part = torch.load(part_path)
-        elif HAVE_PARASOLID:
-            part = pspy.Part(part_path, self.options)
         else:
-            raise NotImplementedError(f'Cannot open {part_path}: Parasolid extension pspy not installed.')
+            part = Part(part_path, self.options)
         graph = part_to_graph(part, self.features)
         if not self.cache_dir is None:
             torch.save(graph, cache_file)
@@ -63,7 +55,7 @@ class PartDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.part_paths)
 
-# Convert a pspy part object into a pytorch-geometric compatible
+# Convert a Part object into a pytorch-geometric compatible
 # heterogeneous graph
 
 # We use a custom torch geometry data object to implement heterogeneous
@@ -413,7 +405,7 @@ def flatbatch(datalist):
 
 
 def part_to_graph(part, options):
-    # Add dot (.) access to deserialized parts so they act more like pspy parts
+    # Add dot (.) access to deserialized parts so they act more like C++ module Parts
     if isinstance(part, dict):
         part = DotMap(part)
     

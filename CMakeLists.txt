@@ -27,8 +27,6 @@ pybind11_add_module(automate_cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/cpp/eclass.cpp 
 	${CMAKE_CURRENT_SOURCE_DIR}/cpp/part.h
 	${CMAKE_CURRENT_SOURCE_DIR}/cpp/part.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/cpp/implicit_part.h
-	${CMAKE_CURRENT_SOURCE_DIR}/cpp/implicit_part.cpp
 )
 
 target_link_libraries(automate_cpp PUBLIC breploader Eigen3::Eigen)
